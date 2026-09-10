@@ -86,9 +86,14 @@ python inspector_botellas.py --sin-arduino --calibrar
 ```
 
 - Ajusta `roi` en `config.json` para encuadrar solo la botella.
-- Con `--calibrar` ves las confianzas del modelo por clase en vivo.
-- Si algo se clasifica mal, mueve `conf_ok` / `conf_defecto` en `config.json`
-  (tecla `s` guarda). Pasa las 70 botellas de prueba y anota esperado vs obtenido.
+- Con `--calibrar` ves las confianzas por clase y el `nivel_llenado` en vivo.
+- **Nivel de llenado**: no es la confianza de "Agua", se mide por geometria
+  (cuanto sube la caja de agua en la botella). Con una botella LLENA delante,
+  `nivel_llenado` deberia dar ~1.0; si da otra cosa, ajusta `cuello_frac` en
+  `config.json`. Despues fija `nivel_min` (0.80 = "descarta si esta a menos del
+  80%").
+- Si algo mas se clasifica mal, mueve `conf_ok` / `conf_defecto` (tecla `s`
+  guarda). Pasa las 70 botellas de prueba y anota esperado vs obtenido.
 
 ## 3. Banco electronico (sobre la mesa, sin faja)
 

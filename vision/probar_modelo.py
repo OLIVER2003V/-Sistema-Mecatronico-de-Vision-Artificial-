@@ -97,7 +97,8 @@ def main():
         cod = res["codigo"]
         cont[cod] = cont.get(cod, 0) + 1
         confs = " ".join("%s=%.2f" % (k.replace("conf_", ""), v)
-                         for k, v in res["metricas"].items() if k.startswith("conf_"))
+                         for k, v in res["metricas"].items()
+                         if k.startswith("conf_") or k == "nivel_llenado")
         print("  %-28s -> %s  %-14s | %s" % (os.path.basename(r)[:28], cod,
                                              res["etiqueta"], confs))
         vis = dibujar_diagnostico(img, res, cfg)

@@ -13,11 +13,17 @@ Proyecto de curso. Dos partes que se hablan por el puerto serie:
   o `--modelo RUTA`). No se versiona (pesa); esta en `.gitignore`.
 - Clases del modelo: `Botella Etiqueta Tapa Agua` (deben estar) y
   `Rota Notapa` (defectos).
-- Regla en `vision/clasificador.py` (`conf_ok = 0.80`, `conf_defecto = 0.50`):
-  - **A** aceptada — Botella + Etiqueta + Tapa + Agua, las 4 con conf >= `conf_ok`, sin Rota/Notapa.
+- El **nivel de llenado** NO es la confianza de "Agua": se estima por geometria
+  (cuanto sube la caja `Agua` dentro de la caja `Botella`, ver `_nivel_llenado`).
+  0 = vacia, ~1 = llena hasta el hombro.
+- Regla en `vision/clasificador.py` (`conf_ok = 0.80` Etiqueta/Tapa,
+  `conf_defecto = 0.50` Rota/Notapa, `nivel_min = 0.80` llenado):
+  - **A** aceptada — hay Botella/Etiqueta/Tapa, sin Rota/Notapa, y llenado >= `nivel_min`.
   - **D** defectuosa — hay Rota o Notapa, o falta Botella/Etiqueta/Tapa.
-  - **L** nivel de agua — lo fisico OK pero Agua < `conf_ok` (mal llenada / vacia).
+  - **L** nivel de agua — lo fisico OK pero llenado < `nivel_min` (mal llenada / vacia).
   - **N** sin botella — el inspector lo trata como A.
+- Calibrar el llenado: con `--calibrar`, una botella LLENA deberia marcar
+  `nivel_llenado` ~1.0; si no, ajusta `cuello_frac`. Despues fija `nivel_min`.
 
 ## Protocolo serie (9600 baudios)
 
@@ -82,5 +88,6 @@ python entrenar_modelo.py --eval               # mide best.pt contra capturas/
 - Despues de tocar el `.ino`, compila con `arduino-cli` y arregla los errores
   antes de dar el cambio por hecho.
 - Cambios al protocolo o a los pines: actualiza tambien este archivo.
-- Los umbrales del modelo (`conf_ok`, `conf_defecto`, `conf_detectar`) viven en
-  `config.json -> modelo` y se ajustan con fotos reales.
+- Los umbrales del modelo (`conf_ok`, `conf_defecto`, `conf_detectar`,
+  `nivel_min`, `cuello_frac`) viven en `config.json -> modelo` y se ajustan con
+  fotos reales.
