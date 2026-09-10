@@ -12,7 +12,8 @@
 
 #include <Arduino.h>
 
-// Cola circular chica (6 lugares) de veredictos 'A' / 'D' / 'L'.
+// Cola circular chica (6 lugares) de veredictos que van de la estacion 1 a la 2.
+// Solo lleva 'A' y 'L'  ('D' se expulsa en la estacion 1, nunca entra a la cola).
 // Sin memoria dinamica: entra entera en la RAM del UNO.
 struct Cola {
   char dato[6];
@@ -32,7 +33,9 @@ inline void colaPop(Cola &c) {
 inline void colaVaciar(Cola &c) { c.cabeza = 0; c.cantidad = 0; }
 
 // Sub-estados de cada estacion (maquinas de estados no bloqueantes).
-enum EstCam { CAM_BUSCA, CAM_CENTRA, CAM_ESPERA, CAM_LIBERA };
-enum EstSrv { SRV_BUSCA, SRV_CENTRA, SRV_EMPUJA, SRV_LIBERA };
+//   Estacion 1: busca -> centra -> espera veredicto de la PC -> (empuja si 'D') -> libera
+//   Estacion 2: busca -> centra -> (empuja si 'L') -> libera
+enum Est1  { E1_BUSCA, E1_CENTRA, E1_ESPERA, E1_EMPUJA, E1_LIBERA };
+enum Est2  { E2_BUSCA, E2_CENTRA, E2_EMPUJA, E2_LIBERA };
 
 #endif  // TIPOS_H

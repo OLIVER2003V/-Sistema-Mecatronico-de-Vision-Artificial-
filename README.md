@@ -3,14 +3,29 @@
 Faja transportadora que inspecciona botellas con una camara y las separa en
 tres grupos:
 
-- **Aceptada** (`A`) — botella, etiqueta, tapa y agua, todo OK.
-- **Defectuosa** (`D`) — rota, sin tapa, o le falta la etiqueta.
-- **Nivel de agua** (`L`) — bien por fuera pero mal llenada o vacia.
+- **Aceptada** (`A`) — botella, etiqueta, tapa y llenado OK. Sale por el final.
+- **Defectuosa** (`D`) — rota, sin tapa, o le falta la etiqueta. La expulsa el
+  **servo 1 (pin 10)** en la estacion 1.
+- **Llenado bajo** (`L`) — bien por fuera pero con menos del 60% de liquido. La
+  expulsa el **servo 2 (pin 11)** en la estacion 2.
+
+Flujo (2 estaciones, 1 sola camara):
+
+```
+cinta -> [sensor 1: para, foto, clasifica] --D--> servo 1 expulsa, sigue
+                     |
+                     A / L
+                     v
+         [sensor 2] --L--> para, servo 2 expulsa       --A--> pasa de largo
+```
+
+El veredicto se calcula una vez (estacion 1) y el Arduino lo recuerda para la
+estacion 2.
 
 Piezas:
 
 - **Arduino UNO** (`faja_botellas/`) mueve la faja, los 2 servos de expulsion y
-  el LCD.
+  el LCD. 2 sensores de barrera, 3 botones.
 - **Python + YOLO** (`vision/`) toma la foto, la pasa por el modelo `best.pt`
   (Ultralytics) y decide.
 - Se comunican por USB con un protocolo de una letra (ver `CLAUDE.md`).
@@ -21,6 +36,8 @@ PROYECTO SW2/
 ├── faja_botellas/
 │   ├── faja_botellas.ino         firmware del Arduino UNO
 │   └── tipos.h
+├── pruebas/
+│   └── prueba_servos/            sketch suelto para probar los 2 servos
 └── vision/
     ├── clasificador.py           carga best.pt y aplica la regla A / D / L
     ├── inspector_botellas.py     programa principal (camara + serie)
@@ -90,8 +107,8 @@ python inspector_botellas.py --sin-arduino --calibrar
 - **Nivel de llenado**: no es la confianza de "Agua", se mide por geometria
   (cuanto sube la caja de agua en la botella). Con una botella LLENA delante,
   `nivel_llenado` deberia dar ~1.0; si da otra cosa, ajusta `cuello_frac` en
-  `config.json`. Despues fija `nivel_min` (0.80 = "descarta si esta a menos del
-  80%").
+  `config.json`. Despues fija `nivel_min` (0.60 = "descarta si esta a menos del
+  60%").
 - Si algo mas se clasifica mal, mueve `conf_ok` / `conf_defecto` (tecla `s`
   guarda). Pasa las 70 botellas de prueba y anota esperado vs obtenido.
 
@@ -106,16 +123,19 @@ arduino-cli upload -p COM3 --fqbn arduino:avr:uno pruebas/prueba_servos
 ```
 
 Despues, el firmware real, simulando los sensores con un cable a GND
-(pin 8 = camara, 7 = estacion L, 6 = estacion D):
+(**pin 8** = sensor 1: camara + servo 1 · **pin 7** = sensor 2: servo 2):
 
 ```powershell
 arduino-cli upload -p COM3 --fqbn arduino:avr:uno faja_botellas
 ```
 
 En el Monitor Serie (9600): `S` arranca · `X` para · `R` resetea.
-Secuencia para disparar un servo: `S` -> pin 8 a GND -> mandar `D` (o `L`) ->
-soltar pin 8 -> pin 6 a GND (para `D`) o pin 7 a GND (para `L`) -> el servo empuja.
-Estaciones: `camara -> servo L (nivel) -> servo D (defecto) -> salida`.
+
+- **Servo 1 (defecto, pin 10):** `S` -> pin 8 a GND -> mandar `D` ->
+  el servo 1 empuja en el acto -> soltar pin 8.
+- **Servo 2 (llenado, pin 11):** `S` -> pin 8 a GND -> mandar `L` ->
+  soltar pin 8 -> pin 7 a GND -> el servo 2 empuja.
+- **Aceptada:** mandar `A`; no se activa ningun servo.
 
 Con la camara conectada, en vez de teclear el veredicto:
 
@@ -126,8 +146,9 @@ python inspector_botellas.py --sin-ventana        # responde A/D/L al Arduino
 
 ## 4. Faja completa
 
-Ajusta los `RETARDO_*` arriba del `.ino` hasta que cada botella se detenga
-justo frente a la camara y frente a cada servo. Vuelve a pasar las 70 botellas.
+Ajusta los `RETARDO_*` arriba del `.ino`: `RETARDO_CAM_MS` para que la botella
+quede centrada frente a la camara, `RETARDO_EST2_MS` para el servo 2, y
+`RETARDO_EMPUJE_MS` para el recorrido de la paleta. Vuelve a pasar las 70 botellas.
 
 ## Reentrenar el modelo
 

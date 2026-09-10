@@ -16,10 +16,12 @@ Se calibra con 'nivel_min' y 'cuello_frac' en config.json -> modelo.
 Regla de decision -> 3 salidas que se le mandan al Arduino:
 
     'A'  ACEPTADA    : Botella + Etiqueta + Tapa, sin Rota ni Notapa, y con
-                       nivel de llenado >= nivel_min (0.80).
+                       nivel de llenado >= nivel_min (0.60).
     'D'  DEFECTUOSA  : hay Rota o Notapa, o falta Botella / Etiqueta / Tapa.
+                       -> el firmware la expulsa en la ESTACION 1 (servo pin 10).
     'L'  NIVEL AGUA  : lo fisico esta bien pero el llenado es < nivel_min
-                       (botella mal llenada o vacia). Estacion propia.
+                       (botella mal llenada o vacia).
+                       -> el firmware la expulsa en la ESTACION 2 (servo pin 11).
     'N'  sin botella : el modelo no ve una botella (el inspector lo trata como 'A').
 
 Umbrales -> config.json, seccion "modelo". Si cambias estas letras, cambialas
@@ -61,7 +63,7 @@ CONFIG_DEFECTO = {
         "conf_ok": 0.80,          # Etiqueta y Tapa deben detectarse con al menos esta confianza
         "conf_detectar": 0.25,    # una clase "aparece" a partir de esta confianza
         "conf_defecto": 0.50,     # Rota / Notapa cuentan como defecto a partir de aca
-        "nivel_min": 0.80,        # llenado minimo (0..1) para aceptar; por debajo -> L
+        "nivel_min": 0.60,        # llenado minimo (0..1) para aceptar; por debajo -> L
         "cuello_frac": 0.15,      # alto de cuello+tapa como fraccion de la botella (medir llenado)
         "imgsz": 640,
         "dispositivo": "cpu",     # "cpu"  o  "0" para la primera GPU
@@ -206,7 +208,7 @@ def _clasificar_impl(bgr, cfg, modelo):
     conf_ok = float(m.get("conf_ok", 0.80))
     conf_det = float(m.get("conf_detectar", 0.25))
     conf_def = float(m.get("conf_defecto", 0.50))
-    nivel_min = float(m.get("nivel_min", 0.80))
+    nivel_min = float(m.get("nivel_min", 0.60))
     cuello_frac = float(m.get("cuello_frac", 0.15))
     modelo = modelo or cargar_modelo(cfg)
 
