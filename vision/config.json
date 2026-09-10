@@ -21,6 +21,8 @@
     "conf_ok": 0.8,
     "conf_detectar": 0.25,
     "conf_defecto": 0.5,
+    "nivel_min": 0.8,
+    "cuello_frac": 0.15,
     "imgsz": 640,
     "dispositivo": "cpu"
   },
