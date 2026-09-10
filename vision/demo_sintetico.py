@@ -27,69 +27,78 @@ from clasificador import clasificar, cargar_config
 FONDO = 245     # fondo iluminado (contraluz)
 VIDRIO = 150    # cuerpo de la botella
 ETIQUETA = 60   # papel: bloquea mas luz
-TAPA = 45       # tapa opaca
+TAPA = 52       # tapa opaca
 
-W, H = 300, 520
+W, H = 300, 540
 
-
-def _lienzo():
-    return np.full((H, W), FONDO, np.uint8)
-
-
-def _cuerpo(img, cx, cuerpo_w, top, bot):
-    x0, x1 = cx - cuerpo_w // 2, cx + cuerpo_w // 2
-    cv2.rectangle(img, (x0, top + 40), (x1, bot), VIDRIO, -1)
-    cv2.ellipse(img, (cx, top + 40), (cuerpo_w // 2, 40), 0, 180, 360, VIDRIO, -1)  # hombro
-    cv2.ellipse(img, (cx, bot), (cuerpo_w // 2, 18), 0, 0, 180, VIDRIO, -1)          # base
-
-
-def _cuello_tapa(img, cx, top, con_tapa=True):
-    cv2.rectangle(img, (cx - 15, top + 8), (cx + 15, top + 44), VIDRIO, -1)   # cuello
-    if con_tapa:
-        cv2.rectangle(img, (cx - 26, top - 14), (cx + 26, top + 12), TAPA, -1)  # tapa ancha
-        cv2.ellipse(img, (cx, top - 14), (26, 8), 0, 180, 360, TAPA, -1)
+# Distribucion vertical de la botella "sana" (en pixeles).
+Y_TAPA_TOP = 70
+Y_TAPA_BOT = 96
+Y_CUELLO_BOT = 138
+Y_HOMBRO_BOT = 184
+Y_CUERPO_BOT = 470
+BODY_W = 135
+NECK_W = 30
+CAP_W = 52
 
 
-def _etiqueta(img, cx, cuerpo_w, y0, y1, angulo=0.0, dx=0, recorte=0.0):
-    cap = np.zeros((H, W), np.uint8)
-    x0, x1 = cx - int(cuerpo_w * 0.44), cx + int(cuerpo_w * 0.44)
-    cv2.rectangle(cap, (x0, y0), (x1, y1), 255, -1)
-    if recorte > 0:                       # rasgadura: sacar una franja del medio
-        ry0 = y0 + int((y1 - y0) * 0.38)
-        ry1 = y0 + int((y1 - y0) * 0.62)
-        cv2.rectangle(cap, (x0 - 5, ry0), (x1 + 5, ry1), 0, -1)
+def _poner_etiqueta(img, cx, y0, y1, angulo=0.0, dx=0, rasgar=False):
+    lab = np.zeros(img.shape[:2], np.uint8)
+    x0, x1 = cx - int(BODY_W * 0.42), cx + int(BODY_W * 0.42)
+    cv2.rectangle(lab, (x0, y0), (x1, y1), 255, -1)
+    if rasgar:                                  # sacar una franja del medio
+        ry0 = y0 + int((y1 - y0) * 0.40)
+        ry1 = y0 + int((y1 - y0) * 0.60)
+        cv2.rectangle(lab, (x0 - 6, ry0), (x1 + 6, ry1), 0, -1)
     if angulo != 0.0 or dx != 0:
         M = cv2.getRotationMatrix2D((float(cx), (y0 + y1) / 2.0), angulo, 1.0)
         M[0, 2] += dx
-        cap = cv2.warpAffine(cap, M, (W, H))
-    img[cap > 0] = ETIQUETA
+        lab = cv2.warpAffine(lab, M, (img.shape[1], img.shape[0]))
+    # recortar la etiqueta al cuerpo: solo pintar donde YA hay botella
+    img[(lab > 0) & (img < 240)] = ETIQUETA
 
 
 def generar(tipo):
-    img = _lienzo()
-    cx, cuerpo_w = W // 2, 135
-    top, bot = 120, 470
-    if tipo == "aplastada":
-        top = int(bot - (bot - top) * 0.52)     # mucho mas baja
+    img = np.full((H, W), FONDO, np.uint8)
+    cx = W // 2
+    y_cuerpo_bot = Y_CUERPO_BOT if tipo != "aplastada" else 280
 
-    _cuerpo(img, cx, cuerpo_w, top, bot)
-    _cuello_tapa(img, cx, top, con_tapa=(tipo != "sin_tapa"))
+    # cuerpo + base redondeada
+    cv2.rectangle(img, (cx - BODY_W // 2, Y_HOMBRO_BOT),
+                  (cx + BODY_W // 2, y_cuerpo_bot), VIDRIO, -1)
+    cv2.ellipse(img, (cx, y_cuerpo_bot), (BODY_W // 2, 16), 0, 0, 180, VIDRIO, -1)
+    # hombro (trapecio del cuello al cuerpo)
+    hombro = np.array([[cx - NECK_W // 2, Y_CUELLO_BOT], [cx + NECK_W // 2, Y_CUELLO_BOT],
+                       [cx + BODY_W // 2, Y_HOMBRO_BOT], [cx - BODY_W // 2, Y_HOMBRO_BOT]],
+                      np.int32)
+    cv2.fillPoly(img, [hombro], VIDRIO)
+    # cuello
+    cv2.rectangle(img, (cx - NECK_W // 2, Y_TAPA_BOT), (cx + NECK_W // 2, Y_CUELLO_BOT),
+                  VIDRIO, -1)
+    # tapa (todas menos "sin_tapa")
+    if tipo != "sin_tapa":
+        cv2.rectangle(img, (cx - CAP_W // 2, Y_TAPA_TOP), (cx + CAP_W // 2, Y_TAPA_BOT),
+                      TAPA, -1)
 
-    if tipo == "abollada":
-        # muesca localizada en el lado derecho del cuerpo (unos 35 px de fondo)
-        pts = np.array([[cx + 80, 288], [cx + 32, 305], [cx + 80, 322]], np.int32)
-        cv2.fillPoly(img, [pts], FONDO)
-
-    y0 = top + int((bot - top) * 0.42)
-    y1 = top + int((bot - top) * 0.63)
+    # etiqueta
+    y0 = Y_HOMBRO_BOT + int((y_cuerpo_bot - Y_HOMBRO_BOT) * 0.30)
+    y1 = Y_HOMBRO_BOT + int((y_cuerpo_bot - Y_HOMBRO_BOT) * 0.62)
     if tipo == "sin_etiqueta":
         pass
     elif tipo == "etiqueta_torcida":
-        _etiqueta(img, cx, cuerpo_w, y0, y1, angulo=14.0, dx=10)
+        _poner_etiqueta(img, cx, y0, y1, angulo=16.0, dx=8)
     elif tipo == "etiqueta_rota":
-        _etiqueta(img, cx, cuerpo_w, y0, y1, recorte=0.5)
+        _poner_etiqueta(img, cx, y0, y1, rasgar=True)
     else:
-        _etiqueta(img, cx, cuerpo_w, y0, y1)
+        _poner_etiqueta(img, cx, y0, y1)
+
+    # abolladura: DESPUES de la etiqueta, muerde cuerpo y etiqueta a la vez
+    if tipo == "abollada":
+        yc = Y_HOMBRO_BOT + int((y_cuerpo_bot - Y_HOMBRO_BOT) * 0.32)
+        pts = np.array([[cx + BODY_W // 2 + 12, yc - 22],
+                        [cx + BODY_W // 2 - 42, yc + 2],
+                        [cx + BODY_W // 2 + 12, yc + 26]], np.int32)
+        cv2.fillPoly(img, [pts], FONDO)
 
     img = cv2.GaussianBlur(img, (3, 3), 0)
     return cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)

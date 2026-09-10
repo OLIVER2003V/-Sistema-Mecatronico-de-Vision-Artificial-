@@ -34,6 +34,12 @@ winget install -e --id ArduinoSA.CLI
 # cerra y volve a abrir la terminal para que tomen el PATH
 ```
 
+Si `python` sigue abriendo la Microsoft Store en vez del Python real: es el
+"alias de ejecucion de aplicaciones". Apagalo en Configuracion > Aplicaciones >
+Configuracion avanzada de aplicaciones > Alias de ejecucion de aplicaciones
+(python.exe y python3.exe), o borra los stubs de 0 bytes en
+`%LOCALAPPDATA%\Microsoft\WindowsApps\python*.exe`.
+
 Driver del Arduino clon (chip CH340): buscar "CH340 driver Windows" e instalar.
 
 ## 1. Solo software (sin comprar nada)
