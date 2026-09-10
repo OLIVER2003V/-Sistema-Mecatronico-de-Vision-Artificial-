@@ -1,5 +1,5 @@
 {
-  "_comentario": "Se ajusta con: python inspector_botellas.py --calibrar. Distancias en pixeles salvo que se indique.",
+  "_comentario": "Config de la faja. La seccion 'modelo' controla el clasificador YOLO (best.pt). conf_ok = el 'minimo 80%'.",
   "camara": {
     "indice": 0,
     "ancho": 1280,
@@ -12,23 +12,13 @@
     "baudios": 9600
   },
   "roi": [0, 0, 0, 0],
-  "umbral_fondo": 0,
-  "invertir": true,
-  "area_min": 6000,
-  "relacion_nominal": 2.6,
-  "aplastada_factor": 0.75,
-  "tapa_franja": 0.08,
-  "tapa_ancho_min": 0.30,
-  "abolladura_px": 8,
-  "extent_min": 0.70,
-  "etiqueta_y": [0.30, 0.80],
-  "etiqueta_x": 0.70,
-  "etiqueta_contraste_min": 14,
-  "etiqueta_min_filas_frac": 0.15,
-  "etiqueta_alto_min_frac": 0.12,
-  "etiqueta_area_min": 0.50,
-  "etiqueta_rota_std": 0.20,
-  "torcida_px": 10,
-  "torcida_centro_px": 14,
+  "modelo": {
+    "ruta": "best.pt",
+    "conf_ok": 0.80,
+    "conf_detectar": 0.25,
+    "conf_defecto": 0.50,
+    "imgsz": 640,
+    "dispositivo": "cpu"
+  },
   "guardar_dir": "capturas"
 }

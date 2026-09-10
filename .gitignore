@@ -5,11 +5,18 @@ __pycache__/
 venv/
 env/
 
-# Capturas (se juntan solas; no van al repo)
+# Capturas y muestras (se juntan solas; no van al repo)
 vision/capturas/*
 !vision/capturas/.gitkeep
+vision/muestras/*
+!vision/muestras/.gitkeep
 vision/demo_resultado.png
+vision/resultado_modelo.png
+
+# Modelos entrenados (pesan; se comparten aparte)
 vision/modelo.*
+*.pt
+runs/
 
 # Compilado de Arduino
 build/

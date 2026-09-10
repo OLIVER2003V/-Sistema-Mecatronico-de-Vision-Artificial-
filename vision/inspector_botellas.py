@@ -4,15 +4,17 @@ inspector_botellas.py  ---  Programa principal de vision de la faja.
 
 Ciclo:
   1. El Arduino manda 'B' cuando hay una botella detenida frente a la camara.
-  2. Se toma el cuadro, se recorta la ROI y se clasifica (clasificador.py).
-  3. Se le responde al Arduino con 'A' / 'E' / 'D'.
+  2. Se toma el cuadro, se recorta la ROI y se clasifica con el modelo YOLO.
+  3. Se le responde al Arduino con 'A' (aceptada) / 'D' (defectuosa) / 'L' (nivel de agua).
+
+Necesita el modelo best.pt (ver clasificador.py: va en vision/best.pt).
 
 Uso:
   python inspector_botellas.py                 # con Arduino (autodetecta el COM)
   python inspector_botellas.py --sin-arduino   # sin hardware: ESPACIO simula una botella
-  python inspector_botellas.py --calibrar      # ajusta umbrales en vivo, guarda config.json
-  python inspector_botellas.py --guardar       # guarda cada captura en capturas/ (para la IA)
-  python inspector_botellas.py --puerto COM4 --camara 1
+  python inspector_botellas.py --calibrar      # muestra las confianzas del modelo en vivo
+  python inspector_botellas.py --guardar       # guarda cada captura en capturas/ (para reentrenar)
+  python inspector_botellas.py --modelo C:\ruta\best.pt --puerto COM4 --camara 1
 
 Teclas en la ventana:  q salir   c calibrar on/off   r reset contadores
                        s guardar config   ESPACIO inspeccionar (solo --sin-arduino)
@@ -31,7 +33,8 @@ import cv2
 import numpy as np  # noqa: F401  (lo usan helpers al crecer)
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from clasificador import cargar_config, guardar_config, clasificar, dibujar_diagnostico
+from clasificador import (cargar_config, guardar_config, clasificar,
+                          dibujar_diagnostico, cargar_modelo, ruta_modelo)
 
 try:
     import serial
@@ -97,7 +100,7 @@ def main():
     ap.add_argument("--puerto", default=None, help="forzar puerto serie, ej: COM3")
     ap.add_argument("--camara", type=int, default=None, help="forzar indice de camara")
     ap.add_argument("--config", default=os.path.join(AQUI, "config.json"))
-    ap.add_argument("--umbral", type=int, default=None, help="forzar umbral_fondo (0 = Otsu)")
+    ap.add_argument("--modelo", default=None, help="ruta a best.pt (def: vision/best.pt)")
     ap.add_argument("--sin-ventana", action="store_true",
                     help="no abrir ventana (PC sin entorno grafico)")
     args = ap.parse_args()
@@ -107,8 +110,17 @@ def main():
         cfg["camara"]["indice"] = args.camara
     if args.puerto:
         cfg["serial"]["puerto"] = args.puerto
-    if args.umbral is not None:
-        cfg["umbral_fondo"] = args.umbral
+    if args.modelo:
+        cfg["modelo"]["ruta"] = args.modelo
+
+    # ---- modelo YOLO (se carga una vez; sin el no se puede clasificar) ----
+    try:
+        modelo = cargar_modelo(cfg)
+    except (FileNotFoundError, ImportError) as e:
+        print(e, file=sys.stderr)
+        return 2
+    print("modelo: %s" % ruta_modelo(cfg))
+    print("clases: %s" % list(modelo.names.values()))
 
     guardar_dir = None
     if args.guardar is not None:
@@ -142,7 +154,7 @@ def main():
             ser.close()
         return 2
 
-    cont = {"A": 0, "E": 0, "D": 0}
+    cont = {"A": 0, "D": 0, "L": 0}
     ultimo = "-"
     ventana = not args.sin_ventana
     if ventana:
@@ -177,7 +189,7 @@ def main():
             # --- ventana / teclado ---
             if ventana:
                 if args.calibrar:
-                    res = clasificar(roi, cfg)
+                    res = clasificar(roi, cfg, modelo)
                     vis = dibujar_diagnostico(roi, res, cfg)
                     poner_texto(vis, "CALIBRAR  %s  %s" % (res["codigo"], res["etiqueta"]), 10, 24)
                     yy = 46
@@ -188,8 +200,8 @@ def main():
                     cv2.imshow("inspector", vis)
                 else:
                     vis = roi.copy()
-                    poner_texto(vis, "A:%d  E:%d  D:%d   ultimo: %s"
-                                % (cont["A"], cont["E"], cont["D"], ultimo), 10, 24)
+                    poner_texto(vis, "A:%d  D:%d  L:%d   ultimo: %s"
+                                % (cont["A"], cont["D"], cont["L"], ultimo), 10, 24)
                     cv2.imshow("inspector", vis)
 
                 k = cv2.waitKey(1) & 0xFF
@@ -198,7 +210,7 @@ def main():
                 elif k == ord("c"):
                     args.calibrar = not args.calibrar
                 elif k == ord("r"):
-                    cont = {"A": 0, "E": 0, "D": 0}
+                    cont = {"A": 0, "D": 0, "L": 0}
                 elif k == ord("s"):
                     guardar_config(cfg, args.config)
                     print("config guardada en", args.config)
@@ -209,7 +221,7 @@ def main():
 
             # --- inspeccion ---
             if disparar and not args.calibrar:
-                res = clasificar(roi, cfg)
+                res = clasificar(roi, cfg, modelo)
                 cod = "A" if res["codigo"] == "N" else res["codigo"]
                 if ser is not None:
                     ser.write(cod.encode("ascii"))

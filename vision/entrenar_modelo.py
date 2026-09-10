@@ -1,95 +1,104 @@
 # -*- coding: utf-8 -*-
 """
-entrenar_modelo.py  ---  Clasificador por IA.  PARA MAS ADELANTE (fase "IA").
+entrenar_modelo.py  ---  Ayudas para el modelo YOLO (best.pt).
 
-Idea: cuando tengas varios cientos de capturas reales en vision/capturas/
-(generadas con  inspector_botellas.py --guardar), entrenas un modelo que
-reemplace o complemente las heuristicas de clasificador.py.
+Ya usas un modelo entrenado (Ultralytics YOLO). Este archivo tiene dos cosas:
 
-El nombre de archivo lleva la etiqueta:
-    AAAAMMDD_HHMMSS_mmm_<COD>_<detalle>.png
-    COD = A (buena) | E (etiqueta) | D (defecto)
+  1. --eval : corre best.pt sobre las capturas de  vision/capturas/  y compara
+              el veredicto con el codigo que quedo en el nombre del archivo
+              (AAAAMMDD_HHMMSS_mmm_<COD>_<detalle>.png ; COD = A / D / L).
+              Sirve para medir cuanto acierta con TUS fotos.
 
-Este archivo es un ESQUELETO: todavia no entrena nada. Se recomienda correrlo
-en Google Colab (GPU gratis). Al final estan los dos enfoques sugeridos.
+  2. Abajo, como referencia, el comando para RE-entrenar con Ultralytics si
+     sumas mas fotos etiquetadas.
 
-    python entrenar_modelo.py --datos capturas
+    python entrenar_modelo.py --eval
+    python entrenar_modelo.py --eval --carpeta capturas
 """
 
 import argparse
 import glob
 import os
+import sys
 
-CLASES = {"A": 0, "E": 1, "D": 2}
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+AQUI = os.path.dirname(os.path.abspath(__file__))
+CODIGOS = ("A", "D", "L", "N")
 
 
 def cargar_dataset(carpeta):
-    """Devuelve (rutas, etiquetas) leyendo el COD del nombre de archivo."""
-    rutas, etiquetas = [], []
-    for r in sorted(glob.glob(os.path.join(carpeta, "*.png"))):
+    """Devuelve [(ruta, cod_esperado), ...] leyendo el COD del nombre de archivo."""
+    pares = []
+    for r in sorted(glob.glob(os.path.join(carpeta, "*.png")) +
+                    glob.glob(os.path.join(carpeta, "*.jpg"))):
         partes = os.path.basename(r).split("_")
-        cod = next((p for p in partes if p in CLASES), None)
-        if cod is not None:
-            rutas.append(r)
-            etiquetas.append(CLASES[cod])
-    return rutas, etiquetas
+        cod = next((p for p in partes if p in CODIGOS), None)
+        if cod:
+            pares.append((r, cod))
+    return pares
 
 
-def entrenar(rutas, etiquetas, salida):
-    raise NotImplementedError(
-        "Todavia sin implementar. Elegi un enfoque (ver comentarios al final):\n"
-        "  1) HOG + SVM con scikit-learn  -> liviano, corre en la laptop.\n"
-        "  2) CNN (MobileNetV2 fine-tuning) en Colab con Keras -> mas preciso.")
+def evaluar(carpeta, config):
+    import cv2
+    from clasificador import clasificar, cargar_config, cargar_modelo
+
+    cfg = cargar_config(config)
+    cargar_modelo(cfg)                      # lanza si falta best.pt o ultralytics
+
+    pares = cargar_dataset(carpeta)
+    if not pares:
+        print("no hay capturas con codigo en el nombre en:", carpeta)
+        print("Genera algunas con:  python inspector_botellas.py --guardar")
+        return
+
+    conf = {e: {o: 0 for o in CODIGOS} for e in CODIGOS}
+    ok = 0
+    for ruta, esp in pares:
+        img = cv2.imread(ruta)
+        if img is None:
+            continue
+        obt = clasificar(img, cfg)["codigo"]
+        conf[esp][obt] = conf[esp].get(obt, 0) + 1
+        ok += int(obt == esp)
+
+    n = len(pares)
+    print("\n%d capturas   aciertos: %d/%d  (%.1f%%)\n" % (n, ok, n, 100.0 * ok / max(n, 1)))
+    print("            obtenido")
+    print("esper |  " + "  ".join("%3s" % c for c in CODIGOS))
+    print("------+-" + "-" * (5 * len(CODIGOS)))
+    for e in CODIGOS:
+        print("  %3s | " % e + "  ".join("%3d" % conf[e][o] for o in CODIGOS))
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--datos", default=os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                                    "capturas"))
-    ap.add_argument("--salida", default="modelo.tflite")
+    ap.add_argument("--eval", action="store_true", help="medir best.pt contra vision/capturas/")
+    ap.add_argument("--carpeta", default=os.path.join(AQUI, "capturas"))
+    ap.add_argument("--config", default=os.path.join(AQUI, "config.json"))
     a = ap.parse_args()
 
-    rutas, y = cargar_dataset(a.datos)
-    print("%d imagenes en %s" % (len(rutas), a.datos))
-    print("por clase:", {k: y.count(v) for k, v in CLASES.items()})
-    if len(rutas) < 60:
-        print("Junta mas capturas antes de entrenar (minimo ~60, ideal 300+).")
-        return
-    entrenar(rutas, y, a.salida)
+    if a.eval:
+        evaluar(a.carpeta, a.config)
+    else:
+        ap.print_help()
 
 
 if __name__ == "__main__":
     main()
 
 # ==========================================================================
-# OPCION 1 - HOG + SVM (scikit-learn). Imagen a 128x256 en gris:
+# RE-ENTRENAR con Ultralytics (solo si sumas mas fotos etiquetadas)
+# --------------------------------------------------------------------------
+# 1. Etiqueta las fotos (cajas) con Roboflow o LabelImg. Clases EXACTAS:
+#       Agua  Botella  Etiqueta  Notapa  Rota  Tapa
+# 2. Exporta en formato "YOLOv8" -> queda un data.yaml con train/ y val/.
+# 3. En Google Colab (GPU gratis):
 #
-#   from skimage.feature import hog
-#   from sklearn.svm import SVC
-#   from sklearn.model_selection import train_test_split
-#   import joblib, cv2, numpy as np
+#       pip install ultralytics
+#       yolo detect train model=yolov8n.pt data=data.yaml epochs=80 imgsz=640
 #
-#   X = [hog(cv2.resize(cv2.imread(r, 0), (128, 256)), pixels_per_cell=(16, 16))
-#        for r in rutas]
-#   Xtr, Xte, ytr, yte = train_test_split(X, y, test_size=0.2, stratify=y)
-#   clf = SVC(kernel="rbf", probability=True).fit(Xtr, ytr)
-#   print("acc:", clf.score(Xte, yte))
-#   joblib.dump(clf, "modelo.joblib")
-#
-# OPCION 2 - CNN en Colab (Keras / TensorFlow):
-#
-#   base = tf.keras.applications.MobileNetV2(input_shape=(224, 224, 3),
-#            include_top=False, weights="imagenet")
-#   base.trainable = False
-#   modelo = tf.keras.Sequential([
-#       base,
-#       tf.keras.layers.GlobalAveragePooling2D(),
-#       tf.keras.layers.Dropout(0.2),
-#       tf.keras.layers.Dense(3, activation="softmax"),
-#   ])
-#   modelo.compile("adam", "sparse_categorical_crossentropy", metrics=["accuracy"])
-#   modelo.fit(ds_train, validation_data=ds_val, epochs=15)
-#   # convertir a TFLite y usarlo desde la laptop dentro de clasificador.py
-#   open("modelo.tflite", "wb").write(
-#       tf.lite.TFLiteConverter.from_keras_model(modelo).convert())
+#    (o  model=best.pt  para seguir entrenando el que ya tienes)
+# 4. El mejor queda en  runs/detect/train/weights/best.pt . Copialo a
+#    vision/best.pt  y listo, el inspector lo toma solo.
 # ==========================================================================

@@ -1,5 +1,6 @@
 # Vision de la faja clasificadora de botellas
-# Instalar con:  pip install -r requirements.txt
+# Instalar con:  python -m pip install -r requirements.txt
 opencv-python>=4.8,<5
 numpy>=1.24
 pyserial>=3.5
+ultralytics>=8.1        # modelo YOLO (best.pt). Arrastra torch: la instalacion pesa ~1 GB.

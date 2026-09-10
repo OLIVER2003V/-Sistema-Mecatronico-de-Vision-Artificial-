@@ -7,9 +7,10 @@
   PROTOCOLO SERIE  (9600 baudios, 8N1)
   -----------------------------------
     Arduino -> PC :  'B'   "hay una botella detenida frente a la camara"
-    PC -> Arduino :  'A'  aprobada  -> sigue de largo
-                     'E'  etiqueta  -> la expulsa el servo de la estacion E
-                     'D'  defecto   -> la expulsa el servo de la estacion D
+    PC -> Arduino :  'A'  aceptada       -> sigue de largo
+                     'D'  defectuosa     -> la expulsa el servo de la estacion D
+                     'L'  nivel de agua  -> la expulsa el servo de la estacion L
+                                            (botella mal llenada o vacia)
     Arduino -> PC :  lineas que empiezan con '#' son solo informativas
                      (contadores, avisos). La PC las ignora.
                      NINGUNA linea '#' contiene la letra 'B'.
@@ -18,7 +19,11 @@
 
   ESTACIONES (en orden sobre la faja)
   -----------------------------------
-     [camara / sensor 8]  ->  [servo E / sensor 7]  ->  [servo D / sensor 6]  -> salida
+     [camara / sensor 8]  ->  [servo L / sensor 7]  ->  [servo D / sensor 6]  -> salida
+
+     Estacion L = rechazo por NIVEL DE AGUA.
+     Estacion D = rechazo por DEFECTO FISICO (rota / sin tapa).
+     Lo aceptado no se toca y sale por el final.
 
   La faja funciona en modo ARRANCA-PARA: se detiene en cada estacion mientras
   trabaja. Es mas lento pero da fotos nitidas y expulsiones limpias. Cuando
@@ -26,9 +31,9 @@
 
   PINES  (no usar 0 y 1: los ocupa el puerto serie)
   ------
-     11  servo estacion E            10  servo estacion D
+     11  servo estacion L            10  servo estacion D
       9  modulo rele -> motor faja
-      8  sensor barrera camara        7  sensor barrera E      6  sensor barrera D
+      8  sensor barrera camara        7  sensor barrera L      6  sensor barrera D
       3  boton START                  4  boton STOP            5  boton RESET
      SDA/SCL (A4/A5)  LCD 16x2 I2C
 
@@ -64,19 +69,19 @@ const uint8_t SERVO_EMPUJE = 110;
 
 // Tiempos en milisegundos. Ajustar en Fase 4 con botellas reales.
 const uint16_t RETARDO_CAMARA_MS   = 250;  // centrar botella frente a la camara antes de parar
-const uint16_t RETARDO_SERVO_E_MS  = 150;  // centrar botella frente al servo E antes de empujar
+const uint16_t RETARDO_SERVO_L_MS  = 150;  // centrar botella frente al servo L antes de empujar
 const uint16_t RETARDO_SERVO_D_MS  = 150;  // idem servo D
 const uint16_t RETARDO_EMPUJE_MS   = 450;  // cuanto queda afuera la paleta
 const uint16_t RETARDO_LIBERAR_MS  = 350;  // mover faja para despejar el sensor tras cada estacion
 const uint16_t ANTIREBOTE_MS       = 30;   // botones
-const uint32_t TIMEOUT_PC_MS       = 3000; // si la PC no contesta, la botella pasa como aprobada
+const uint32_t TIMEOUT_PC_MS       = 3000; // si la PC no contesta, la botella pasa como aceptada
 
 // ============================= PINES =====================================
-const uint8_t PIN_SERVO_E   = 11;
+const uint8_t PIN_SERVO_L   = 11;
 const uint8_t PIN_SERVO_D   = 10;
 const uint8_t PIN_RELE      = 9;
 const uint8_t PIN_SEN_CAM   = 8;
-const uint8_t PIN_SEN_E     = 7;
+const uint8_t PIN_SEN_L     = 7;
 const uint8_t PIN_SEN_D     = 6;
 const uint8_t PIN_BTN_START = 3;
 const uint8_t PIN_BTN_STOP  = 4;
@@ -84,27 +89,27 @@ const uint8_t PIN_BTN_RESET = 5;
 
 // ============================ OBJETOS ====================================
 LiquidCrystal_I2C lcd(LCD_ADDR, 16, 2);
-Servo servoE;
+Servo servoL;
 Servo servoD;
 
 // ====================== COLA DE VEREDICTOS ===============================
 // (struct Cola y las funciones colaXxx viven en tipos.h)
-Cola colaCam;  // veredictos que salen de la camara, los consume la estacion E
-Cola colaD;    // veredictos que la estacion E deja pasar, los consume la estacion D
+Cola colaCam;  // veredictos que salen de la camara, los consume la estacion L
+Cola colaD;    // veredictos que la estacion L deja pasar, los consume la estacion D
 
 // ============================ ESTADO ====================================
 bool fajaActiva = false;
 
 // Solicitudes de parada del motor (una por estacion). El motor gira solo si
 // la faja esta activa y NADIE pide parar.
-bool paraCam = false, paraE = false, paraD = false;
+bool paraCam = false, paraL = false, paraD = false;
 
 EstCam estCam = CAM_BUSCA;
-EstSrv estE = SRV_BUSCA;
+EstSrv estL = SRV_BUSCA;
 EstSrv estD = SRV_BUSCA;
-uint32_t tCam = 0, tE = 0, tD = 0;
+uint32_t tCam = 0, tL = 0, tD = 0;
 
-uint16_t nTotal = 0, nBuena = 0, nEtiq = 0, nDefec = 0;
+uint16_t nTotal = 0, nBuena = 0, nNivel = 0, nDefec = 0;
 
 bool lcdSucio = true;
 
@@ -128,7 +133,7 @@ void refrescarLcd() {
     lcd.print(F("Tot:")); lcd.print(nTotal);
     lcd.print(F(" Ok:")); lcd.print(nBuena);
     lcd.setCursor(0, 1);
-    lcd.print(F("Etq:")); lcd.print(nEtiq);
+    lcd.print(F("Niv:")); lcd.print(nNivel);
     lcd.print(F(" Def:")); lcd.print(nDefec);
   }
   lcdSucio = false;
@@ -138,13 +143,13 @@ void informar() {
   // Sin la letra 'B' en ningun lado: la PC solo reacciona a una 'B' suelta.
   Serial.print(F("#tot=")); Serial.print(nTotal);
   Serial.print(F(" ok="));  Serial.print(nBuena);
-  Serial.print(F(" et="));  Serial.print(nEtiq);
+  Serial.print(F(" niv=")); Serial.print(nNivel);
   Serial.print(F(" df="));  Serial.println(nDefec);
 }
 
 void contar(char v) {
   nTotal++;
-  if (v == 'E') nEtiq++;
+  if (v == 'L') nNivel++;
   else if (v == 'D') nDefec++;
   else nBuena++;
   lcdSucio = true;
@@ -165,17 +170,17 @@ bool flancoBoton(uint8_t pin, bool &previo, uint32_t &marca) {
 void pararTodo() {
   fajaActiva = false;
   motor(false);
-  servoE.write(SERVO_REPOSO);
+  servoL.write(SERVO_REPOSO);
   servoD.write(SERVO_REPOSO);
-  paraCam = paraE = paraD = false;
-  estCam = CAM_BUSCA; estE = SRV_BUSCA; estD = SRV_BUSCA;
+  paraCam = paraL = paraD = false;
+  estCam = CAM_BUSCA; estL = SRV_BUSCA; estD = SRV_BUSCA;
   colaVaciar(colaCam); colaVaciar(colaD);
   lcdSucio = true;
   Serial.println(F("#STOP"));
 }
 
 void resetContadores() {
-  nTotal = nBuena = nEtiq = nDefec = 0;
+  nTotal = nBuena = nNivel = nDefec = 0;
   colaVaciar(colaCam); colaVaciar(colaD);
   lcdSucio = true;
   Serial.println(F("#RESET"));
@@ -189,15 +194,15 @@ void setup() {
   motor(false);
 
   pinMode(PIN_SEN_CAM, INPUT);
-  pinMode(PIN_SEN_E, INPUT);
+  pinMode(PIN_SEN_L, INPUT);
   pinMode(PIN_SEN_D, INPUT);
   pinMode(PIN_BTN_START, INPUT);
   pinMode(PIN_BTN_STOP, INPUT);
   pinMode(PIN_BTN_RESET, INPUT);
 
-  servoE.attach(PIN_SERVO_E);
+  servoL.attach(PIN_SERVO_L);
   servoD.attach(PIN_SERVO_D);
-  servoE.write(SERVO_REPOSO);
+  servoL.write(SERVO_REPOSO);
   servoD.write(SERVO_REPOSO);
 
   lcd.init();
@@ -205,7 +210,7 @@ void setup() {
   refrescarLcd();
 
   Serial.println(F("#LISTO faja botellas"));
-  Serial.println(F("#PC: S=start X=stop R=reset ; contesta A/E/D cuando reciba B"));
+  Serial.println(F("#PC: S=start X=stop R=reset ; contesta A/D/L cuando reciba B"));
 }
 
 // ==================== MAQUINA DE LA CAMARA =============================
@@ -228,10 +233,10 @@ void tareaCamara() {
       char v = 0;
       while (Serial.available()) {
         char c = Serial.read();
-        if (c == 'A' || c == 'E' || c == 'D') v = c;
+        if (c == 'A' || c == 'D' || c == 'L') v = c;
         else if (c == 'a') v = 'A';
-        else if (c == 'e') v = 'E';
         else if (c == 'd') v = 'D';
+        else if (c == 'l') v = 'L';
       }
       if (v == 0 && (millis() - tCam) > TIMEOUT_PC_MS) {
         v = 'A';                  // la PC no contesto: dejar pasar
@@ -256,7 +261,7 @@ void tareaCamara() {
 }
 
 // ============ MAQUINA GENERICA DE UNA ESTACION DE SERVO ===============
-// 'letra' es 'E' o 'D'. 'salida' puede ser nullptr (ultima estacion).
+// 'letra' es 'L' o 'D'. 'salida' puede ser nullptr (ultima estacion).
 void tareaServo(EstSrv &est, uint32_t &t, uint8_t pinSensor, Servo &servo,
                 bool &solicitudParar, Cola &entrada, Cola *salida,
                 char letra, uint16_t retardoCentrar) {
@@ -328,12 +333,12 @@ void loop() {
   // --- Estaciones ---
   if (fajaActiva) {
     tareaCamara();
-    tareaServo(estE, tE, PIN_SEN_E, servoE, paraE, colaCam, &colaD,   'E', RETARDO_SERVO_E_MS);
+    tareaServo(estL, tL, PIN_SEN_L, servoL, paraL, colaCam, &colaD,   'L', RETARDO_SERVO_L_MS);
     tareaServo(estD, tD, PIN_SEN_D, servoD, paraD, colaD,   nullptr,  'D', RETARDO_SERVO_D_MS);
   }
 
   // --- Motor: gira solo si la faja esta activa y nadie pide parar ---
-  motor(fajaActiva && !paraCam && !paraE && !paraD);
+  motor(fajaActiva && !paraCam && !paraL && !paraD);
 
   // --- LCD (solo cuando cambio algo: el I2C es lento) ---
   if (lcdSucio) refrescarLcd();

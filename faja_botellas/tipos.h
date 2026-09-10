@@ -12,7 +12,7 @@
 
 #include <Arduino.h>
 
-// Cola circular chica (6 lugares) de veredictos 'A' / 'E' / 'D'.
+// Cola circular chica (6 lugares) de veredictos 'A' / 'D' / 'L'.
 // Sin memoria dinamica: entra entera en la RAM del UNO.
 struct Cola {
   char dato[6];
