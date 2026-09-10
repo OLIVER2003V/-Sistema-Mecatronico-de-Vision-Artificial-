@@ -97,16 +97,32 @@ python inspector_botellas.py --sin-arduino --calibrar
 
 ## 3. Banco electronico (sobre la mesa, sin faja)
 
-Sube el firmware y prueba tapando los sensores y pulsando los botones a mano:
+Primero, probar los servos solos (confirma cableado y fuente externa):
+
+```powershell
+arduino-cli compile --fqbn arduino:avr:uno pruebas/prueba_servos
+arduino-cli upload -p COM3 --fqbn arduino:avr:uno pruebas/prueba_servos
+# Monitor Serie 9600: hacen un ciclo cada 2s; teclas  l  d  o un angulo 0-180
+```
+
+Despues, el firmware real, simulando los sensores con un cable a GND
+(pin 8 = camara, 7 = estacion L, 6 = estacion D):
 
 ```powershell
 arduino-cli upload -p COM3 --fqbn arduino:avr:uno faja_botellas
+```
+
+En el Monitor Serie (9600): `S` arranca · `X` para · `R` resetea.
+Secuencia para disparar un servo: `S` -> pin 8 a GND -> mandar `D` (o `L`) ->
+soltar pin 8 -> pin 6 a GND (para `D`) o pin 7 a GND (para `L`) -> el servo empuja.
+Estaciones: `camara -> servo L (nivel) -> servo D (defecto) -> salida`.
+
+Con la camara conectada, en vez de teclear el veredicto:
+
+```powershell
 cd "vision"
 python inspector_botellas.py --sin-ventana        # responde A/D/L al Arduino
 ```
-
-Comandos utiles por el Monitor Serie (a 9600): `S` arranca, `X` para, `R` resetea.
-Estaciones: `camara -> servo L (nivel) -> servo D (defecto) -> salida`.
 
 ## 4. Faja completa
 

@@ -1,7 +1,6 @@
 {
-  "_comentario": "Config de la faja. La seccion 'modelo' controla el clasificador YOLO (best.pt). conf_ok = el 'minimo 80%'.",
   "camara": {
-    "indice": 0,
+    "indice": 1,
     "ancho": 1280,
     "alto": 720,
     "exposicion": -6,
@@ -11,14 +10,20 @@
     "puerto": "AUTO",
     "baudios": 9600
   },
-  "roi": [0, 0, 0, 0],
+  "roi": [
+    0,
+    0,
+    0,
+    0
+  ],
   "modelo": {
     "ruta": "best.pt",
-    "conf_ok": 0.80,
+    "conf_ok": 0.8,
     "conf_detectar": 0.25,
-    "conf_defecto": 0.50,
+    "conf_defecto": 0.5,
     "imgsz": 640,
     "dispositivo": "cpu"
   },
-  "guardar_dir": "capturas"
+  "guardar_dir": "capturas",
+  "_comentario": "Config de la faja. La seccion 'modelo' controla el clasificador YOLO (best.pt). conf_ok = el 'minimo 80%'."
 }

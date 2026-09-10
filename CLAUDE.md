@@ -65,6 +65,7 @@ mantener separacion entre botellas con las guias laterales. Orden de estaciones:
 arduino-cli compile --fqbn arduino:avr:uno faja_botellas
 arduino-cli upload -p COM3 --fqbn arduino:avr:uno faja_botellas
 arduino-cli board list        # ver en que COM esta el Arduino
+arduino-cli compile --fqbn arduino:avr:uno pruebas/prueba_servos   # test de servos (Fase 3)
 
 # --- Vision (necesita vision/best.pt) ---
 cd vision
