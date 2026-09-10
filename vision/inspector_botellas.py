@@ -191,7 +191,17 @@ def main():
             print("no se encontro ningun puerto serie. Conecta el Arduino o usa --sin-arduino",
                   file=sys.stderr)
             return 2
-        ser = serial.Serial(puerto, int(cfg["serial"]["baudios"]), timeout=0)
+        try:
+            ser = serial.Serial(puerto, int(cfg["serial"]["baudios"]), timeout=0)
+        except serial.SerialException as e:
+            print("no se pudo abrir %s: %s" % (puerto, e), file=sys.stderr)
+            texto = str(e).lower()
+            if "deneg" in texto or "denied" in texto or "permission" in texto or "access" in texto:
+                print("El puerto esta ocupado. Cerra el Monitor Serie del Arduino IDE "
+                      "(o el IDE entero) y volve a intentar.", file=sys.stderr)
+            print("Tambien podes usar --sin-arduino, o --puerto COMx para forzar otro.",
+                  file=sys.stderr)
+            return 2
         time.sleep(2.0)            # el UNO se reinicia al abrir el puerto
         ser.reset_input_buffer()
         print("Arduino en %s @ %s baudios" % (puerto, cfg["serial"]["baudios"]))
@@ -207,6 +217,7 @@ def main():
 
     cont = {"A": 0, "D": 0, "L": 0}
     ultimo = "-"
+    fallos_serie = 0
     ventana = not args.sin_ventana
     if ventana:
         try:
@@ -228,8 +239,28 @@ def main():
 
             # --- senal del Arduino: cualquier byte 'B' dispara inspeccion ---
             if ser is not None:
-                data = ser.read(256)
+                try:
+                    data = ser.read(256)
+                except serial.SerialException as e:
+                    # el CH340 en Windows a veces "pierde" el puerto un instante
+                    fallos_serie += 1
+                    print("aviso: fallo de lectura serie (%d): %s" % (fallos_serie, e))
+                    try:
+                        ser.close()
+                        time.sleep(0.5)
+                        ser.open()
+                        ser.reset_input_buffer()
+                        print("puerto %s reabierto" % puerto)
+                    except serial.SerialException:
+                        pass
+                    if fallos_serie >= 5:
+                        print("demasiados fallos de %s. Cerra el Arduino IDE (queda tomando "
+                              "el puerto) y volve a correr esto." % puerto, file=sys.stderr)
+                        return 2
+                    time.sleep(0.2)
+                    continue
                 if data:
+                    fallos_serie = 0
                     if b"B" in data:
                         disparar = True
                     for linea in data.split(b"\n"):
@@ -294,7 +325,10 @@ def main():
                 res = clasificar(roi, cfg, modelo)
                 cod = "A" if res["codigo"] == "N" else res["codigo"]
                 if ser is not None:
-                    ser.write(cod.encode("ascii"))
+                    try:
+                        ser.write(cod.encode("ascii"))
+                    except serial.SerialException as e:
+                        print("aviso: no se pudo enviar '%s' al Arduino: %s" % (cod, e))
                 cont[cod] = cont.get(cod, 0) + 1
                 ultimo = "%s %s" % (cod, res["etiqueta"])
                 print("%s  ->  %s  %s  (%s)"
