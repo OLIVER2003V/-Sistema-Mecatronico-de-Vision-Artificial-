@@ -68,8 +68,8 @@ Estados en `tipos.h`: `Est1` (5) y `Est2` (4).
 
 - 2 KB de RAM: nada de `String` dinamicos ni arreglos grandes. Textos fijos
   con `F("...")`.
-- La libreria del LCD es **LiquidCrystal I2C** (Frank de Brabander). `Servo`
-  viene incluida.
+- Librerias: **LiquidCrystal I2C** (Frank de Brabander) y **Servo** (Arduino).
+  Instalar ambas desde el Library Manager o con `arduino-cli lib install`.
 
 ## Comandos
 

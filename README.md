@@ -90,8 +90,12 @@ Para el firmware:
 ```powershell
 arduino-cli core install arduino:avr
 arduino-cli lib install "LiquidCrystal I2C"
+arduino-cli lib install Servo
 arduino-cli compile --fqbn arduino:avr:uno faja_botellas
 ```
+
+(En Arduino IDE: Library Manager -> instalar **LiquidCrystal I2C** de Frank de
+Brabander y **Servo** de Arduino.)
 
 ## 2. Banco de vision (camara + luz, sin faja)
 
