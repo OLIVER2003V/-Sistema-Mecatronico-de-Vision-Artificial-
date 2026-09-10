@@ -14,10 +14,12 @@ Uso:
   python inspector_botellas.py --sin-arduino   # sin hardware: ESPACIO simula una botella
   python inspector_botellas.py --calibrar      # muestra las confianzas del modelo en vivo
   python inspector_botellas.py --guardar       # guarda cada captura en capturas/ (para reentrenar)
+  python inspector_botellas.py --listar-camaras # lista las camaras conectadas y sale
   python inspector_botellas.py --modelo C:\ruta\best.pt --puerto COM4 --camara 1
 
 Teclas en la ventana:  q salir   c calibrar on/off   r reset contadores
-                       s guardar config   ESPACIO inspeccionar (solo --sin-arduino)
+                       s guardar config   0-9 cambiar de camara
+                       ESPACIO inspeccionar (solo --sin-arduino)
 
 OJO: un solo programa a la vez puede abrir el COM. Cerra el Monitor Serie del
 Arduino IDE antes de correr esto.
@@ -46,14 +48,18 @@ except ImportError:
 AQUI = os.path.dirname(os.path.abspath(__file__))
 
 
-def abrir_camara(cfg):
-    idx = int(cfg["camara"]["indice"])
+def _abrir(idx):
     if sys.platform.startswith("win"):
         cap = cv2.VideoCapture(idx, cv2.CAP_DSHOW)
         if not cap.isOpened():
             cap = cv2.VideoCapture(idx)
     else:
         cap = cv2.VideoCapture(idx)
+    return cap
+
+
+def abrir_camara(cfg):
+    cap = _abrir(int(cfg["camara"]["indice"]))
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, cfg["camara"]["ancho"])
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, cfg["camara"]["alto"])
     if not cfg["camara"].get("autoexposicion", False):
@@ -61,6 +67,45 @@ def abrir_camara(cfg):
         cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)
         cap.set(cv2.CAP_PROP_EXPOSURE, float(cfg["camara"]["exposicion"]))
     return cap
+
+
+def _log_cv(silencioso):
+    """Baja/sube el nivel de log de OpenCV (el sondeo de camaras es ruidoso)."""
+    try:
+        lg = cv2.utils.logging
+        lg.setLogLevel(lg.LOG_LEVEL_SILENT if silencioso else lg.LOG_LEVEL_WARNING)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def listar_camaras(maxn=8):
+    """Prueba los indices 0..maxn-1 y muestra cuales entregan imagen."""
+    print("Buscando camaras (indices 0..%d)..." % (maxn - 1))
+    _log_cv(True)
+    hay, fallos = [], 0
+    for i in range(maxn):
+        cap = _abrir(i)
+        abre = cap.isOpened()
+        r, f = cap.read() if abre else (False, None)
+        cap.release()
+        if r and f is not None:
+            h, w = f.shape[:2]
+            print("  camara %d :  %dx%d" % (i, w, h))
+            hay.append(i)
+            fallos = 0
+        else:
+            if abre:
+                print("  camara %d :  abre pero no entrega imagen" % i)
+            fallos += 1
+            if fallos >= 3 and hay:      # ya no vienen mas
+                break
+    _log_cv(False)
+    if hay:
+        print("\nElegi con  --camara N  (o las teclas 0-9 en la ventana). "
+              "Ej: --camara %d" % hay[0])
+    else:
+        print("  no se encontro ninguna camara.")
+    return hay
 
 
 def detectar_puerto(cfg):
@@ -99,11 +144,16 @@ def main():
                     help="guardar cada captura (por defecto la carpeta de config.json)")
     ap.add_argument("--puerto", default=None, help="forzar puerto serie, ej: COM3")
     ap.add_argument("--camara", type=int, default=None, help="forzar indice de camara")
+    ap.add_argument("--listar-camaras", action="store_true",
+                    help="listar las camaras conectadas y salir")
     ap.add_argument("--config", default=os.path.join(AQUI, "config.json"))
     ap.add_argument("--modelo", default=None, help="ruta a best.pt (def: vision/best.pt)")
     ap.add_argument("--sin-ventana", action="store_true",
                     help="no abrir ventana (PC sin entorno grafico)")
     args = ap.parse_args()
+
+    if args.listar_camaras:
+        return 0 if listar_camaras() else 2
 
     cfg = cargar_config(args.config)
     if args.camara is not None:
@@ -150,6 +200,7 @@ def main():
     cap = abrir_camara(cfg)
     if not cap or not cap.isOpened():
         print("no se pudo abrir la camara (indice %s)" % cfg["camara"]["indice"], file=sys.stderr)
+        listar_camaras()
         if ser is not None:
             ser.close()
         return 2
@@ -164,7 +215,7 @@ def main():
             ventana = False
 
     print("Teclas: [q] salir  [c] calibrar  [r] reset  [s] guardar config  "
-          "[ESPACIO] inspeccionar (sin-arduino)")
+          "[0-9] cambiar camara  [ESPACIO] inspeccionar (sin-arduino)")
     try:
         while True:
             ok, frame = cap.read()
@@ -188,10 +239,12 @@ def main():
 
             # --- ventana / teclado ---
             if ventana:
+                cam_i = int(cfg["camara"]["indice"])
                 if args.calibrar:
                     res = clasificar(roi, cfg, modelo)
                     vis = dibujar_diagnostico(roi, res, cfg)
-                    poner_texto(vis, "CALIBRAR  %s  %s" % (res["codigo"], res["etiqueta"]), 10, 24)
+                    poner_texto(vis, "CALIBRAR  cam:%d  %s  %s"
+                                % (cam_i, res["codigo"], res["etiqueta"]), 10, 24)
                     yy = 46
                     for k, v in res["metricas"].items():
                         txt = ("%s: %.1f" % (k, v)) if isinstance(v, float) else ("%s: %s" % (k, v))
@@ -200,8 +253,8 @@ def main():
                     cv2.imshow("inspector", vis)
                 else:
                     vis = roi.copy()
-                    poner_texto(vis, "A:%d  D:%d  L:%d   ultimo: %s"
-                                % (cont["A"], cont["D"], cont["L"], ultimo), 10, 24)
+                    poner_texto(vis, "cam:%d   A:%d  D:%d  L:%d   ultimo: %s"
+                                % (cam_i, cont["A"], cont["D"], cont["L"], ultimo), 10, 24)
                     cv2.imshow("inspector", vis)
 
                 k = cv2.waitKey(1) & 0xFF
@@ -214,6 +267,23 @@ def main():
                 elif k == ord("s"):
                     guardar_config(cfg, args.config)
                     print("config guardada en", args.config)
+                elif ord("0") <= k <= ord("9"):
+                    nuevo = k - ord("0")
+                    if nuevo != int(cfg["camara"]["indice"]):
+                        anterior = int(cfg["camara"]["indice"])
+                        cfg["camara"]["indice"] = nuevo
+                        cap.release()
+                        _log_cv(True)
+                        cap = abrir_camara(cfg)
+                        vale, _ = cap.read()
+                        _log_cv(False)
+                        if not vale:
+                            print("camara %d no disponible; sigo con la %d" % (nuevo, anterior))
+                            cap.release()
+                            cfg["camara"]["indice"] = anterior
+                            cap = abrir_camara(cfg)
+                        else:
+                            print("camara -> %d" % nuevo)
                 elif k == ord(" ") and args.sin_arduino:
                     disparar = True
             else:

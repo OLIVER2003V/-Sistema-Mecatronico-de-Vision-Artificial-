@@ -64,9 +64,10 @@ arduino-cli board list        # ver en que COM esta el Arduino
 cd vision
 python -m pip install -r requirements.txt      # incluye ultralytics (arrastra torch)
 python probar_modelo.py                        # corre best.pt sobre vision/muestras/
+python inspector_botellas.py --listar-camaras  # lista las camaras conectadas y sale
 python inspector_botellas.py                   # inspeccion real, con Arduino (autodetecta COM)
 python inspector_botellas.py --sin-arduino     # sin hardware: ESPACIO simula una botella
-python inspector_botellas.py --calibrar        # muestra las confianzas del modelo en vivo
+python inspector_botellas.py --sin-arduino --calibrar --camara 1   # deteccion en vivo, camara 1
 python inspector_botellas.py --guardar         # junta capturas en capturas/ para reentrenar
 python entrenar_modelo.py --eval               # mide best.pt contra capturas/
 ```
