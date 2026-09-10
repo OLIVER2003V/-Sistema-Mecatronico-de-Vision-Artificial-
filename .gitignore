@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# Capturas (se juntan solas; no van al repo)
+vision/capturas/*
+!vision/capturas/.gitkeep
+vision/demo_resultado.png
+vision/modelo.*
+
+# Compilado de Arduino
+build/
+*.hex
+*.elf
+
+# Editores / SO
+.vscode/
+.DS_Store
+Thumbs.db

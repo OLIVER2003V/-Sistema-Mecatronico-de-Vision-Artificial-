@@ -1,0 +1,70 @@
+# Faja clasificadora de botellas
+
+Proyecto de curso. Dos partes que se hablan por el puerto serie:
+
+- `faja_botellas/` — firmware del **Arduino UNO** (C++). Controla motor (por
+  modulo rele), 2 servos y un LCD 16x2 I2C. Lee 3 sensores de barrera y 3 botones.
+- `vision/` — **vision en Python + OpenCV**. Toma la foto a contraluz, clasifica
+  la botella y le dice al Arduino que hacer.
+
+## Protocolo serie (9600 baudios)
+
+- Arduino -> PC: `B` = "hay una botella detenida frente a la camara".
+- PC -> Arduino: `A` aprobada · `E` etiqueta mal · `D` defecto fisico.
+- Arduino -> PC: lineas que empiezan con `#` son informativas (contadores /
+  avisos) y **no contienen la letra `B`**; la PC las ignora.
+- **Si cambias estas letras, cambialas en los dos lados**:
+  `faja_botellas/faja_botellas.ino` y `vision/clasificador.py`.
+
+## Pines del Arduino
+
+- Servos: **11** (estacion E), **10** (estacion D)
+- Motor por modulo rele: **9**
+- Sensores de barrera: **8** (camara), **7** (E), **6** (D)
+- Botones: **3** (START), **4** (STOP), **5** (RESET)
+- LCD I2C en A4/A5. **No usar 0 y 1** (puerto serie).
+- `SENSOR_ACTIVO`, `RELE_ENCENDIDO`, `BOTON_PULSADO` y los `RETARDO_*` estan
+  arriba del `.ino` para calibrar sin tocar la logica.
+
+## Como funciona la faja
+
+Modo **arranca-para**: la faja se detiene en cada estacion mientras trabaja
+(foto nitida, expulsion limpia). Procesa las botellas de a una: hay que
+mantener separacion entre botellas con las guias laterales.
+
+## Restricciones del UNO
+
+- 2 KB de RAM: nada de `String` dinamicos ni arreglos grandes. Textos fijos
+  con `F("...")`.
+- La libreria del LCD es **LiquidCrystal I2C** (Frank de Brabander). `Servo`
+  viene incluida.
+
+## Comandos
+
+```bash
+# --- Firmware (necesita arduino-cli) ---
+arduino-cli compile --fqbn arduino:avr:uno faja_botellas
+arduino-cli upload -p COM3 --fqbn arduino:avr:uno faja_botellas
+arduino-cli board list        # ver en que COM esta el Arduino
+
+# --- Vision ---
+cd vision
+python demo_sintetico.py                 # prueba de humo sin hardware (mosaico 8 botellas)
+python inspector_botellas.py             # inspeccion real, con Arduino (autodetecta COM)
+python inspector_botellas.py --sin-arduino   # sin hardware: ESPACIO simula una botella
+python inspector_botellas.py --calibrar      # ajusta umbrales en vivo -> guarda config.json
+python inspector_botellas.py --guardar       # junta capturas en capturas/ para la IA
+```
+
+## Reglas para trabajar en este repo
+
+- Todo comentario y mensaje de usuario en **español** (el codigo usa ASCII sin
+  tildes para evitar problemas de encoding en el compilador de Arduino).
+- Un solo programa a la vez puede abrir el COM: cerra el Monitor Serie del
+  Arduino IDE antes de correr Python o de subir codigo. Error tipico:
+  "Access denied" / "port busy".
+- Despues de tocar el `.ino`, compila con `arduino-cli` y arregla los errores
+  antes de dar el cambio por hecho.
+- Cambios al protocolo o a los pines: actualiza tambien este archivo.
+- La logica de vision de `clasificador.py` es una **base para calibrar**, no la
+  version final: los umbrales de `config.json` se ajustan con fotos reales.
