@@ -72,9 +72,9 @@ const uint8_t LCD_ADDR = 0x27;
 // Comprobalo con el Monitor Serie antes de dejarlo fijo.
 const uint8_t SENSOR_ACTIVO = LOW;
 
-// Muchos modulos rele azules se activan con LOW. Si el motor arranca al reves
-// de lo que esperas, cambia esto a HIGH.
-const uint8_t RELE_ENCENDIDO = LOW;
+// Muchos modulos rele azules se activan con LOW, pero en esta placa el rele
+// prende con HIGH (se invirtio: antes quedaba apagado al dar START).
+const uint8_t RELE_ENCENDIDO = HIGH;
 
 // Con resistencia pull-down de 10 kohm, el boton pulsado entrega HIGH.
 const uint8_t BOTON_PULSADO = HIGH;
@@ -198,6 +198,15 @@ void resetContadores() {
   Serial.println(F("#RESET"));
 }
 
+// Prueba manual de un servo por el Monitor Serie (teclas '1' y '2').
+// Usa delay(): es solo para probar cableado, no corre con la faja en marcha.
+void probarServo(Servo &s, const __FlashStringHelper *nombre) {
+  Serial.print(F("#prueba ")); Serial.println(nombre);
+  s.write(SERVO_EMPUJE);
+  delay(RETARDO_EMPUJE_MS);
+  s.write(SERVO_REPOSO);
+}
+
 // ============================= SETUP ===================================
 void setup() {
   Serial.begin(9600);
@@ -222,6 +231,7 @@ void setup() {
 
   Serial.println(F("#LISTO faja botellas"));
   Serial.println(F("#PC: S=start X=stop R=reset ; responde A/D/L al pedido de foto"));
+  Serial.println(F("#PRUEBA: 1=empuja servo1(pin10) 2=empuja servo2(pin11)"));
 }
 
 // ================= ESTACION 1: camara + servo 1 ('D') =================
@@ -347,6 +357,8 @@ void loop() {
       if (c == 'S') { if (!fajaActiva) { fajaActiva = true; lcdSucio = true; Serial.println(F("#START")); } }
       else if (c == 'X') pararTodo();
       else if (c == 'R') resetContadores();
+      else if (c == '1') probarServo(servo1, F("SERVO 1 (pin 10)"));
+      else if (c == '2') probarServo(servo2, F("SERVO 2 (pin 11)"));
       // cualquier otro byte suelto se descarta
     }
   }
