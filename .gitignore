@@ -27,3 +27,6 @@ build/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Instrucciones locales del repo (no se sube a GitHub)
+CLAUDE.md
