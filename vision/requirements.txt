@@ -4,3 +4,4 @@ opencv-python>=4.8,<5
 numpy>=1.24
 pyserial>=3.5
 ultralytics>=8.1        # modelo YOLO (best.pt). Arrastra torch: la instalacion pesa ~1 GB.
+requests>=2.31          # telemetria al backend SORT-MATIC (ver telemetria_cliente.py)

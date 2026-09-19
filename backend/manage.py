@@ -1,0 +1,20 @@
+#!/usr/bin/env python
+"""manage.py de Django para el backend de SORT-MATIC."""
+import os
+import sys
+
+
+def main():
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "sortmatic.settings")
+    try:
+        from django.core.management import execute_from_command_line
+    except ImportError as exc:
+        raise ImportError(
+            "No se pudo importar Django. Verifica que este instalado y que "
+            "el entorno virtual este activado."
+        ) from exc
+    execute_from_command_line(sys.argv)
+
+
+if __name__ == "__main__":
+    main()

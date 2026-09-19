@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-900 text-slate-100 antialiased;
+  }
+
+  /* Anillo de foco visible SOLO al navegar con teclado: el operador con
+     guantes suele usar tabulador, y sin esto no se ve donde esta parado. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-cyan-400 ring-offset-2 ring-offset-slate-900;
+  }
+
+  /* Las flechitas de los <input type=number> compiten con el deslizador y
+     se tocan sin querer en una pantalla tactil. */
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    @apply appearance-none m-0;
+  }
+
+  /* Los selectores de fecha/hora del navegador vienen en blanco sobre fondo
+     oscuro y quedan ilegibles. */
+  input[type='date']::-webkit-calendar-picker-indicator {
+    @apply cursor-pointer opacity-60 invert;
+  }
+
+  ::-webkit-scrollbar {
+    @apply h-2 w-2;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-slate-700;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-slate-600;
+  }
+}
+
+@layer utilities {
+  /* Numeros que no bailan cuando cambia un contador en vivo. */
+  .cifra {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Respeta a quien pidio menos movimiento en su sistema operativo. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

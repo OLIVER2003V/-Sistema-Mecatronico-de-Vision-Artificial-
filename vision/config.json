@@ -1,10 +1,11 @@
 {
   "camara": {
-    "indice": 1,
+    "indice": 0,
     "ancho": 1280,
     "alto": 720,
     "exposicion": -6,
-    "autoexposicion": false
+    "autoexposicion": false,
+    "rotacion": 270
   },
   "serial": {
     "puerto": "AUTO",
@@ -19,6 +20,7 @@
   "modelo": {
     "ruta": "best.pt",
     "conf_ok": 0.8,
+    "conf_ok_tapa": 0.65,
     "conf_detectar": 0.25,
     "conf_defecto": 0.5,
     "nivel_min": 0.6,
@@ -27,5 +29,21 @@
     "dispositivo": "cpu"
   },
   "guardar_dir": "capturas",
-  "_comentario": "Config de la faja. La seccion 'modelo' controla el clasificador YOLO (best.pt). conf_ok = el 'minimo 80%'."
+  "backend": {
+    "url": "http://localhost:8000/api/telemetria/",
+    "activo": true,
+    "enviar_fotos": true,
+    "api_key": "clave-vision-de-desarrollo-cambiar-en-produccion",
+    "url_configuracion": "http://localhost:8000/api/configuracion/vision/",
+    "intervalo_configuracion_ms": 3000,
+    "url_estado": "http://localhost:8000/api/estado-faja/reporte/",
+    "url_comandos": "http://localhost:8000/api/comandos/siguiente/",
+    "intervalo_comandos_ms": 400,
+    "url_camara": "http://localhost:8000/api/camara/frame/",
+    "camara_activa": true,
+    "intervalo_camara_ms": 100,
+    "ancho_camara": 480,
+    "calidad_camara": 70
+  },
+  "_comentario": "Config de la faja. La seccion 'modelo' son los valores de arranque: cuando el dashboard SORT-MATIC esta levantado, el Supervisor de calidad los pisa en caliente desde la HMI (backend.url_configuracion). 'api_key' debe coincidir con VISION_API_KEY del backend."
 }

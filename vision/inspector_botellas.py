@@ -9,9 +9,16 @@ Ciclo:
 
 Necesita el modelo best.pt (ver clasificador.py: va en vision/best.pt).
 
+Cada botella tambien se manda (async, sin frenar los FPS) al backend SORT-MATIC
+si esta levantado; ver config.json -> "backend" y telemetria_cliente.py.
+
+Ademas escucha comandos START/STOP/RESET que salgan del dashboard (boton en
+el frontend) y los reenvia al Arduino por serie como si fueran S/X/R locales.
+
 Uso:
   python inspector_botellas.py                 # con Arduino (autodetecta el COM)
   python inspector_botellas.py --sin-arduino   # sin hardware: ESPACIO simula una botella
+  python inspector_botellas.py --sin-backend   # no mandar telemetria al dashboard
   python inspector_botellas.py --calibrar      # muestra las confianzas del modelo en vivo
   python inspector_botellas.py --guardar       # guarda cada captura en capturas/ (para reentrenar)
   python inspector_botellas.py --listar-camaras # lista las camaras conectadas y sale
@@ -28,6 +35,7 @@ Arduino IDE antes de correr esto.
 import argparse
 import os
 import sys
+import threading
 import time
 from datetime import datetime
 
@@ -37,6 +45,8 @@ import numpy as np  # noqa: F401  (lo usan helpers al crecer)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from clasificador import (cargar_config, guardar_config, clasificar,
                           dibujar_diagnostico, cargar_modelo, ruta_modelo)
+from telemetria_cliente import (ClienteCamara, ClienteComandos, ClienteConfiguracion,
+                                ClienteEstadoFaja, ClienteTelemetria, payload_desde_resultado)
 
 try:
     import serial
@@ -46,6 +56,12 @@ except ImportError:
     list_ports = None
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
+
+# El puerto serie lo tocan el lazo principal (leer 'B', responder A/D/L) Y el
+# hilo de ClienteComandos (escribir S/X/R que llegan del dashboard). pyserial
+# no garantiza que un Serial sea seguro entre hilos, asi que todo acceso a
+# 'ser' pasa por este lock.
+_lock_serial = threading.Lock()
 
 
 def _abrir(idx):
@@ -122,6 +138,36 @@ def detectar_puerto(cfg):
     return puertos[0].device if puertos else None
 
 
+_ROTACIONES = {90: cv2.ROTATE_90_CLOCKWISE, 180: cv2.ROTATE_180, 270: cv2.ROTATE_90_COUNTERCLOCKWISE}
+
+
+def rotar_frame(frame, grados):
+    """Corrige el cuadro si la camara quedo montada girada (config.json ->
+    camara.rotacion: 0/90/180/270, sentido horario). Se aplica ANTES del ROI
+    y de clasificar, para que todo lo demas siempre vea la botella derecha."""
+    codigo = _ROTACIONES.get(int(grados) % 360)
+    return cv2.rotate(frame, codigo) if codigo is not None else frame
+
+
+# Lineas del firmware que dicen si la faja esta andando. SOLO estas dos: son
+# las unicas que tocan 'fajaActiva' en faja_botellas.ino (lo imprime tanto el
+# boton fisico del tablero como el comando S/X por serie).
+#
+# OJO: '#RESET' pone los contadores en cero y '#TIMEOUT' deja pasar una
+# botella que la PC no alcanzo a clasificar, pero NINGUNO de los dos para la
+# cinta. Si se los tomara como paro, el panel SCADA diria "faja detenida" con
+# la faja andando.
+_MARCHA_POR_LINEA = {"#START": True, "#STOP": False}
+
+
+def marcha_desde_linea(texto):
+    """True/False si la linea del Arduino informa marcha o paro; None si no dice nada."""
+    for prefijo, en_marcha in _MARCHA_POR_LINEA.items():
+        if texto.startswith(prefijo):
+            return en_marcha
+    return None
+
+
 def recortar_roi(frame, cfg):
     x, y, w, h = (cfg.get("roi") or [0, 0, 0, 0])[:4]
     if w > 0 and h > 0:
@@ -134,10 +180,22 @@ def poner_texto(img, txt, x, y):
     cv2.putText(img, txt, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
 
 
+def ajustar_ventana(nombre, img, ultimo_tam):
+    """Redimensiona la ventana si el tamano de la imagen cambio (ej: al rotar
+    la camara, ancho y alto se intercambian). Si no cambio, no toca nada,
+    para no pelearse con un resize manual del usuario."""
+    alto, ancho = img.shape[:2]
+    if (ancho, alto) != ultimo_tam:
+        cv2.resizeWindow(nombre, ancho, alto)
+    return (ancho, alto)
+
+
 def main():
     ap = argparse.ArgumentParser(description="Inspector de botellas de la faja clasificadora")
     ap.add_argument("--sin-arduino", action="store_true",
                     help="no usar puerto serie; ESPACIO simula una botella")
+    ap.add_argument("--sin-backend", action="store_true",
+                    help="no mandar telemetria al backend SORT-MATIC (ver config.json -> backend)")
     ap.add_argument("--calibrar", action="store_true",
                     help="modo calibracion: muestra metricas, no responde al Arduino, guarda config al salir")
     ap.add_argument("--guardar", nargs="?", const="__cfg__", default=None, metavar="CARPETA",
@@ -171,6 +229,12 @@ def main():
         return 2
     print("modelo: %s" % ruta_modelo(cfg))
     print("clases: %s" % list(modelo.names.values()))
+
+    # ---- telemetria al backend SORT-MATIC (no bloquea el lazo de camara) ----
+    cfg_backend = dict(cfg.get("backend") or {})
+    if args.sin_backend:
+        cfg_backend["activo"] = False
+    cliente = ClienteTelemetria(cfg_backend)
 
     guardar_dir = None
     if args.guardar is not None:
@@ -206,6 +270,24 @@ def main():
         ser.reset_input_buffer()
         print("Arduino en %s @ %s baudios" % (puerto, cfg["serial"]["baudios"]))
 
+    # ---- control remoto (Start/Stop/Reset desde el dashboard) ----
+    def escribir_comando(letra):
+        if ser is None:
+            return
+        with _lock_serial:
+            try:
+                ser.write(letra.encode("ascii"))
+            except serial.SerialException as e:
+                print("aviso: no se pudo enviar comando '%s' al Arduino: %s" % (letra, e))
+
+    cliente_comandos = ClienteComandos(cfg_backend, escribir_comando)
+    cliente_camara = ClienteCamara(cfg_backend)
+    # Umbrales del Supervisor de calidad: pisan cfg["modelo"] en caliente.
+    cliente_config = ClienteConfiguracion(cfg_backend, cfg["modelo"])
+    # Panel SCADA: al arrancar la faja siempre esta detenida.
+    cliente_estado = ClienteEstadoFaja(cfg_backend)
+    cliente_estado.reportar(False, arduino_conectado=ser is not None, detalle="inspector iniciado")
+
     # ---- camara ----
     cap = abrir_camara(cfg)
     if not cap or not cap.isOpened():
@@ -217,7 +299,9 @@ def main():
 
     cont = {"A": 0, "D": 0, "L": 0}
     ultimo = "-"
+    en_marcha = False           # ultimo estado que informo el firmware
     fallos_serie = 0
+    tam_ventana = (0, 0)
     ventana = not args.sin_ventana
     if ventana:
         try:
@@ -234,23 +318,32 @@ def main():
                 print("camara sin senal, reintentando...")
                 time.sleep(0.2)
                 continue
+            frame = rotar_frame(frame, cfg["camara"].get("rotacion", 0))
             roi = recortar_roi(frame, cfg)
+            cliente_camara.actualizar(roi)
             disparar = False
 
             # --- senal del Arduino: cualquier byte 'B' dispara inspeccion ---
             if ser is not None:
                 try:
-                    data = ser.read(256)
+                    with _lock_serial:
+                        data = ser.read(256)
                 except serial.SerialException as e:
                     # el CH340 en Windows a veces "pierde" el puerto un instante
                     fallos_serie += 1
                     print("aviso: fallo de lectura serie (%d): %s" % (fallos_serie, e))
+                    # El panel SCADA tiene que mostrar que se perdio el Arduino:
+                    # si no, seguiria diciendo "en marcha" con la faja muda.
+                    cliente_estado.reportar(en_marcha, arduino_conectado=False,
+                                            detalle="sin comunicacion con el Arduino")
                     try:
-                        ser.close()
-                        time.sleep(0.5)
-                        ser.open()
-                        ser.reset_input_buffer()
+                        with _lock_serial:
+                            ser.close()
+                            time.sleep(0.5)
+                            ser.open()
+                            ser.reset_input_buffer()
                         print("puerto %s reabierto" % puerto)
+                        cliente_estado.reportar(en_marcha, detalle="puerto reabierto")
                     except serial.SerialException:
                         pass
                     if fallos_serie >= 5:
@@ -267,6 +360,10 @@ def main():
                         s = linea.strip().decode("ascii", "ignore")
                         if s.startswith("#"):
                             print("  arduino:", s)
+                            marcha = marcha_desde_linea(s)
+                            if marcha is not None:
+                                en_marcha = marcha
+                                cliente_estado.reportar(marcha, detalle=s)
 
             # --- ventana / teclado ---
             if ventana:
@@ -281,11 +378,13 @@ def main():
                         txt = ("%s: %.1f" % (k, v)) if isinstance(v, float) else ("%s: %s" % (k, v))
                         poner_texto(vis, txt, 10, yy)
                         yy += 18
+                    tam_ventana = ajustar_ventana("inspector", vis, tam_ventana)
                     cv2.imshow("inspector", vis)
                 else:
                     vis = roi.copy()
                     poner_texto(vis, "cam:%d   A:%d  D:%d  L:%d   ultimo: %s"
                                 % (cam_i, cont["A"], cont["D"], cont["L"], ultimo), 10, 24)
+                    tam_ventana = ajustar_ventana("inspector", vis, tam_ventana)
                     cv2.imshow("inspector", vis)
 
                 k = cv2.waitKey(1) & 0xFF
@@ -326,18 +425,28 @@ def main():
                 cod = "A" if res["codigo"] == "N" else res["codigo"]
                 if ser is not None:
                     try:
-                        ser.write(cod.encode("ascii"))
+                        with _lock_serial:
+                            ser.write(cod.encode("ascii"))
                     except serial.SerialException as e:
                         print("aviso: no se pudo enviar '%s' al Arduino: %s" % (cod, e))
                 cont[cod] = cont.get(cod, 0) + 1
                 ultimo = "%s %s" % (cod, res["etiqueta"])
                 print("%s  ->  %s  %s  (%s)"
                       % (datetime.now().strftime("%H:%M:%S"), cod, res["etiqueta"], res["detalle"]))
+                # foto solo para las rechazadas (D/L); no frena la camara (ver ClienteTelemetria)
+                cliente.enviar(payload_desde_resultado(cod, res),
+                               imagen_bgr=roi if cod != "A" else None)
                 if guardar_dir:
                     ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:-3]
                     cv2.imwrite(os.path.join(guardar_dir, "%s_%s_%s.png"
                                              % (ts, cod, res["etiqueta"])), roi)
     finally:
+        cliente_estado.reportar(False, arduino_conectado=False, detalle="inspector detenido")
+        cliente.cerrar()
+        cliente_comandos.cerrar()
+        cliente_camara.cerrar()
+        cliente_config.cerrar()
+        cliente_estado.cerrar()
         cap.release()
         if ser is not None:
             ser.close()
