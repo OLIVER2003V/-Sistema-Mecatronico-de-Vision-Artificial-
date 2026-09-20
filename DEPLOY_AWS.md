@@ -205,15 +205,95 @@ En la sección `"backend"` de `vision/config.json`:
 
 ---
 
-## 🔄 Cómo alternar fácilmente entre Entorno Local y Nube
+## 🔒 Paso 8: Configurar Dominio Gratuito (DuckDNS) y SSL/TLS (Certbot Let's Encrypt)
 
-Para cambiar entre trabajar **en tu computadora (Local)** o en la **Nube (AWS)**:
+Para tener tu dominio propio con candado de seguridad HTTPS (🔒) de forma **100% gratuita y automática**, sigue estos pasos:
 
-* **Para trabajar en LOCAL (sin Docker):**
-  Solo ejecuta los comandos locales habituales (`$env:DJANGO_DB_ENGINE = "sqlite"`, `npm run dev`, etc.).
+### 1. Registrar tu Dominio en DuckDNS
+1. Ve a [duckdns.org](https://www.duckdns.org/) e inicia sesión (Google, GitHub, etc.).
+2. En la sección **sub-domain**, elige un nombre para tu proyecto (ejemplo: `sortmatic-botellas`).
+3. En el campo **IP**, coloca la IP pública de tu EC2 (`54.225.179.205`).
+4. Haz clic en **add domain**. Tu dominio será: `sortmatic-botellas.duckdns.org`.
 
-* **Para trabajar en LOCAL (con Docker):**
-  Usa la configuración del archivo `.env` por defecto y ejecuta `docker compose up`.
+### 2. Instalar Nginx Host y Certbot en tu EC2
+En la terminal SSH de tu EC2:
 
-* **Para trabajar en NUBE (AWS):**
-  Simplemente apunta la URL de `vision/config.json` hacia la **IP Pública de tu EC2** (`http://IP_EC2:8000/api/telemetria/`).
+```bash
+sudo apt update
+sudo apt install -y nginx certbot python3-certbot-nginx
+```
+
+### 3. Crear el Proxy Inverso en Nginx
+Crea el archivo de configuración en Nginx:
+
+```bash
+sudo nano /etc/nginx/sites-available/sortmatic
+```
+
+Pega el siguiente contenido (reemplazando `sortmatic-botellas.duckdns.org` por tu subdominio):
+
+```nginx
+server {
+    server_name sortmatic-botellas.duckdns.org;
+    client_max_body_size 10M;
+
+    location / {
+        proxy_pass http://127.0.0.1:80;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /ws/ {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Activa el sitio y recarga Nginx:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/sortmatic /etc/nginx/sites-enabled/
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### 4. Obtener el Certificado SSL Gratuito (HTTPS 🔒)
+Ejecuta Certbot:
+
+```bash
+sudo certbot --nginx -d sortmatic-botellas.duckdns.org
+```
+* Ingresa tu correo electrónico cuando lo solicite y acepta los términos (`Y`).
+* Certbot configurará el certificado SSL/TLS de forma automática y renovará el candado cada 90 días automáticamente.
+
+### 5. Activar HTTPS en tu `.env`
+Edita el archivo `.env` en tu EC2:
+
+```bash
+nano .env
+```
+
+Ajusta estas líneas:
+```env
+DJANGO_DEBUG=false
+DJANGO_FORZAR_HTTPS=true
+DJANGO_ALLOWED_HOSTS=sortmatic-botellas.duckdns.org,54.225.179.205
+```
+
+Reinicia el backend:
+```bash
+docker compose restart backend
+```
+
+¡Listo! Ya puedes entrar a **`https://sortmatic-botellas.duckdns.org`** con conexión cifrada TLS y candado verde 🔒.
+
+
