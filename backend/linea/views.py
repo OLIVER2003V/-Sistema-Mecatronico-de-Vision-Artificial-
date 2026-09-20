@@ -281,7 +281,7 @@ class MermasView(generics.ListAPIView):
     """
 
     serializer_class = MermaSerializer
-    permission_classes = [EsSupervisor]
+    permission_classes = [EsDispositivoVisionOSupervisor]
 
     def _entero(self, nombre, minimo, maximo):
         crudo = self.request.query_params.get(nombre)
@@ -493,15 +493,17 @@ class TendenciaView(APIView):
 # ------------------------------------------------------- control de la faja --
 
 class ComandoCrearView(generics.CreateAPIView):
-    """POST /api/comandos/ -- el operador deja un START/STOP/RESET pendiente."""
+    """POST /api/comandos/ -- el operador o IA deja un START/STOP/RESET pendiente."""
 
     serializer_class = ComandoFajaSerializer
-    permission_classes = [EsPersonalDeLinea]
+    permission_classes = [EsDispositivoVisionOSupervisor]
     queryset = ComandoFaja.objects.all()
 
     def perform_create(self, serializer):
-        comando = serializer.save(solicitado_por=self.request.user)
-        registrar(self.request, RegistroAuditoria.COMANDO_FAJA, "Comando %s" % comando.accion)
+        user = self.request.user if getattr(self.request, "user", None) and self.request.user.is_authenticated else None
+        comando = serializer.save(solicitado_por=user)
+        if user:
+            registrar(self.request, RegistroAuditoria.COMANDO_FAJA, "Comando %s" % comando.accion)
         estado = EstadoFaja.actual()
         estado.ultimo_comando = comando.accion
         estado.save(update_fields=["ultimo_comando"])
@@ -537,7 +539,7 @@ class ComandoSiguienteView(APIView):
 class EstadoFajaView(APIView):
     """GET /api/estado-faja/ -- panel SCADA de la HMI (cualquier rol)."""
 
-    permission_classes = [EsPersonalDeLinea]
+    permission_classes = [EsDispositivoVisionOSupervisor]
 
     def get(self, request):
         return Response(EstadoFajaSerializer(EstadoFaja.actual()).data)

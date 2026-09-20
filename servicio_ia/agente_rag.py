@@ -23,35 +23,44 @@ def obtener_contexto_planta() -> str:
     que alimentará al modelo generativo Gemini.
     """
     try:
-        # 1. Consultar resumen de inspecciones
-        r_resumen = requests.get(f"{BACKEND_URL}/api/linea/resumen-hoy/", headers=HEADERS, timeout=3.0)
-        resumen_data = r_resumen.json() if r_resumen.ok else {}
+        # 1. Consultar KPIs de la línea (/api/kpis/)
+        r_kpis = requests.get(f"{BACKEND_URL}/api/kpis/", headers=HEADERS, timeout=3.0)
+        kpis_data = r_kpis.json() if r_kpis.ok else {}
 
-        # 2. Consultar estado actual de la faja
-        r_estado = requests.get(f"{BACKEND_URL}/api/estado-faja/actual/", headers=HEADERS, timeout=3.0)
+        # 2. Consultar estado actual de la faja (/api/estado-faja/)
+        r_estado = requests.get(f"{BACKEND_URL}/api/estado-faja/", headers=HEADERS, timeout=3.0)
         estado_data = r_estado.json() if r_estado.ok else {}
 
-        # 3. Consultar últimas 5 mermas/defectos
-        r_mermas = requests.get(f"{BACKEND_URL}/api/linea/inspecciones/?solo_defectos=true&limite=5", headers=HEADERS, timeout=3.0)
-        mermas_data = r_mermas.json() if r_mermas.ok else []
+        # 3. Consultar últimas mermas/defectos (/api/mermas/?page_size=5)
+        r_mermas = requests.get(f"{BACKEND_URL}/api/mermas/?page_size=5", headers=HEADERS, timeout=3.0)
+        mermas_resp = r_mermas.json() if r_mermas.ok else {}
+        mermas_data = (
+            mermas_resp.get("results", [])
+            if isinstance(mermas_resp, dict)
+            else (mermas_resp if isinstance(mermas_resp, list) else [])
+        )
+
+        conteos = kpis_data.get("conteos", {})
 
         contexto = f"""
 === CONTEXTO DE PLANTA EN TIEMPO REAL (SORT-MATIC) ===
 - Estado Faja Transportadora: {'EN MARCHA' if estado_data.get('en_marcha') else 'DETENIDA'}
 - Conexión Hardware Arduino: {'CONECTADO' if estado_data.get('arduino_conectado') else 'DESCONECTADO'}
-- Total Botellas Inspeccionadas Hoy: {resumen_data.get('total_hoy', 0)}
-- Aceptadas: {resumen_data.get('aceptadas_hoy', 0)}
-- Defectuosas (Estación 1 - Rota/Etiqueta/Tapa): {resumen_data.get('defectuosas_hoy', 0)}
-- Llenado Bajo (Estación 2 - Liquid < 60%): {resumen_data.get('llenado_bajo_hoy', 0)}
-- Porcentaje Global de Mermas: {resumen_data.get('porcentaje_mermas', 0.0)}%
+- Total Botellas Inspeccionadas (Lote Activo): {kpis_data.get('total_inspecciones', 0)}
+- Cadencia de Producción: {kpis_data.get('cadencia_bpm', 0.0)} BPM (Teórica: {kpis_data.get('cadencia_teorica_bpm', 0.0)} BPM)
+- Tasa de Aprobación (Yield Rate): {kpis_data.get('yield_rate', 0.0)}%
+- Tasa de Rechazo (Mermas): {kpis_data.get('reject_rate', 0.0)}%
+- Conteo Aceptadas: {conteos.get('aceptadas', 0)}
+- Conteo Defectuosas Estación 1 (Físicas): {conteos.get('defectuosa', 0)} (Sin Tapa: {conteos.get('sin_tapa', 0)}, Sin Etiqueta: {conteos.get('sin_etiqueta', 0)})
+- Conteo Llenado Bajo Estación 2: {conteos.get('llenado_bajo', 0)}
 
 Últimas mermas registradas:
 """
         if isinstance(mermas_data, list) and mermas_data:
             for item in mermas_data[:5]:
-                contexto += f"  * Botella #{item.get('id')}: {item.get('resultado')} ({item.get('tipo_defecto', 'N/A')}) - Confianza IA: {item.get('confianza_ia')}%\n"
+                contexto += f"  * Botella #{item.get('id')}: {item.get('resultado')} ({item.get('tipo_defecto', 'N/A')}) - {item.get('fecha_hora', '')}\n"
         else:
-            contexto += "  * No hay mermas recientes.\n"
+            contexto += "  * No hay mermas recientes registradas.\n"
 
         return contexto.strip()
 
