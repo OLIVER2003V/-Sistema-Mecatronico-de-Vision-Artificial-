@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'features/asistente/chat_screen.dart';
+import 'features/auth/login_screen.dart';
 
 void main() {
   runApp(const SortmaticApp());
@@ -11,15 +11,15 @@ class SortmaticApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'SORT-MATIC Assistant',
+      title: 'SORT-MATIC Mobile',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
         primarySwatch: Colors.cyan,
-        scaffoldBackgroundColor: const Color(0xFF12141C),
+        scaffoldBackgroundColor: const Color(0xFF0F172A),
         fontFamily: 'Roboto',
       ),
-      home: const ChatAsistenteScreen(),
+      home: const LoginScreen(),
     );
   }
 }

@@ -3,6 +3,8 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
 import '../../core/ia_service.dart';
+import '../../core/auth_service.dart';
+import '../auth/login_screen.dart';
 
 class MensajeChat {
   final String texto;
@@ -17,7 +19,9 @@ class MensajeChat {
 }
 
 class ChatAsistenteScreen extends StatefulWidget {
-  const ChatAsistenteScreen({Key? key}) : super(key: key);
+  final UsuarioSesion? usuarioSesion;
+
+  const ChatAsistenteScreen({Key? key, this.usuarioSesion}) : super(key: key);
 
   @override
   _ChatAsistenteScreenState createState() => _ChatAsistenteScreenState();
@@ -33,6 +37,9 @@ class _ChatAsistenteScreenState extends State<ChatAsistenteScreen> {
   late stt.SpeechToText _speech;
   late FlutterTts _flutterTts;
 
+  String get _nombreUsuario => widget.usuarioSesion?.nombreCompleto ?? 'Operador Móvil';
+  String get _rolUsuario => widget.usuarioSesion?.rol ?? 'OPERADOR';
+
   @override
   void initState() {
     super.initState();
@@ -40,9 +47,10 @@ class _ChatAsistenteScreenState extends State<ChatAsistenteScreen> {
     _flutterTts = FlutterTts();
     _initTts();
 
-    // Mensaje inicial de bienvenida
+    // Mensaje inicial personalizado por usuario y rol
+    final rolTexto = widget.usuarioSesion?.esSupervisor == true ? 'Supervisor de Calidad' : 'Operador de Planta';
     _mensajes.add(MensajeChat(
-      texto: "👋 ¡Hola! Soy el **Asistente Virtual Generativo de SORT-MATIC**.\n\nPuedes preguntarme sobre el estado de la faja, solicitar un reporte de mermas o dictarme instrucciones por voz.",
+      texto: "👋 ¡Hola **$_nombreUsuario**! Sesión iniciada como **$rolTexto**.\n\nSoy el **Asistente Virtual Generativo de SORT-MATIC**. Puedes preguntarme sobre el estado de la faja, solicitar reportes de mermas o enviarme instrucciones por voz.",
       esUsuario: false,
     ));
   }
@@ -53,7 +61,6 @@ class _ChatAsistenteScreenState extends State<ChatAsistenteScreen> {
   }
 
   void _hablar(String texto) async {
-    // Limpiar sintaxis de markdown básica para lectura por voz fluida
     String limpio = texto.replaceAll(RegExp(r'[*#_`]'), '');
     await _flutterTts.speak(limpio);
   }
@@ -96,8 +103,12 @@ class _ChatAsistenteScreenState extends State<ChatAsistenteScreen> {
     });
     _scrollHaciaAbajo();
 
-    // Consulta al Microservicio de IA
-    final res = await IAService.enviarPregunta(pregunta: texto);
+    // Consulta al Microservicio de IA pasando el nombre y rol del usuario logueado
+    final res = await IAService.enviarPregunta(
+      pregunta: texto,
+      usuario: _nombreUsuario,
+      rol: _rolUsuario,
+    );
     final respuestaTexto = res['respuesta'] ?? 'Sin respuesta';
 
     setState(() {
@@ -113,17 +124,28 @@ class _ChatAsistenteScreenState extends State<ChatAsistenteScreen> {
   void _pedirReporteGenerativo() async {
     setState(() {
       _estaCargando = true;
-      _mensajes.add(MensajeChat(texto: "📊 *Generando Reporte Ejecutivo...*", esUsuario: true));
+      _mensajes.add(MensajeChat(texto: "📊 *Solicitando Reporte Ejecutivo de Mermas...*", esUsuario: true));
     });
     _scrollHaciaAbajo();
 
-    final reporte = await IAService.solicitarReporteGenerativo(tipo: 'turno');
+    final reporte = await IAService.solicitarReporteGenerativo(
+      tipo: 'turno',
+      usuario: _nombreUsuario,
+    );
 
     setState(() {
       _estaCargando = false;
       _mensajes.add(MensajeChat(texto: reporte, esUsuario: false));
     });
     _scrollHaciaAbajo();
+  }
+
+  void _cerrarSesion() async {
+    await AuthService.cerrarSesion();
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+    );
   }
 
   void _scrollHaciaAbajo() {
@@ -140,10 +162,24 @@ class _ChatAsistenteScreenState extends State<ChatAsistenteScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final esSupervisor = widget.usuarioSesion?.esSupervisor ?? false;
+
     return Scaffold(
       backgroundColor: const Color(0xFF12141C),
       appBar: AppBar(
-        title: const Text("Asistente Virtual SORT-MATIC", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "SORT-MATIC Assistant",
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              "👤 $_nombreUsuario ($_rolUsuario)",
+              style: const TextStyle(fontSize: 11, color: Colors.cyanAccent),
+            ),
+          ],
+        ),
         backgroundColor: const Color(0xFF1E2230),
         elevation: 4,
         actions: [
@@ -151,6 +187,11 @@ class _ChatAsistenteScreenState extends State<ChatAsistenteScreen> {
             icon: const Icon(Icons.picture_as_pdf, color: Colors.cyanAccent),
             tooltip: 'Generar Reporte',
             onPressed: _pedirReporteGenerativo,
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
+            tooltip: 'Cerrar Sesión',
+            onPressed: _cerrarSesion,
           ),
         ],
       ),
@@ -168,7 +209,10 @@ class _ChatAsistenteScreenState extends State<ChatAsistenteScreen> {
                   decoration: const BoxDecoration(color: Colors.greenAccent, shape: BoxShape.circle),
                 ),
                 const SizedBox(width: 8),
-                const Text("Conectado a AWS Cloud", style: TextStyle(color: Colors.grey, fontSize: 12)),
+                Text(
+                  "Conectado AWS | Rol: $_rolUsuario",
+                  style: const TextStyle(color: Colors.grey, fontSize: 11),
+                ),
                 const Spacer(),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
@@ -179,6 +223,39 @@ class _ChatAsistenteScreenState extends State<ChatAsistenteScreen> {
                   label: const Text("Parar Faja", style: TextStyle(fontSize: 12)),
                   onPressed: () => _enviarMensaje("Parar la faja de emergencia"),
                 ),
+              ],
+            ),
+          ),
+
+          // Chips de sugerencias según el rol
+          Container(
+            height: 42,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                ActionChip(
+                  avatar: const Icon(Icons.speed, size: 16, color: Colors.cyan),
+                  label: const Text('Estado Faja', style: TextStyle(color: Colors.white, fontSize: 11)),
+                  backgroundColor: const Color(0xFF1E293B),
+                  onPressed: () => _enviarMensaje("¿Cuál es el estado actual de la faja?"),
+                ),
+                const SizedBox(width: 8),
+                ActionChip(
+                  avatar: const Icon(Icons.pie_chart, size: 16, color: Colors.orangeAccent),
+                  label: const Text('Métricas Lote', style: TextStyle(color: Colors.white, fontSize: 11)),
+                  backgroundColor: const Color(0xFF1E293B),
+                  onPressed: () => _enviarMensaje("Muestra las métricas del lote actual"),
+                ),
+                if (esSupervisor) ...[
+                  const SizedBox(width: 8),
+                  ActionChip(
+                    avatar: const Icon(Icons.assessment, size: 16, color: Colors.greenAccent),
+                    label: const Text('Reporte Mermas', style: TextStyle(color: Colors.white, fontSize: 11)),
+                    backgroundColor: const Color(0xFF1E293B),
+                    onPressed: _pedirReporteGenerativo,
+                  ),
+                ],
               ],
             ),
           ),
@@ -198,26 +275,30 @@ class _ChatAsistenteScreenState extends State<ChatAsistenteScreen> {
                     padding: const EdgeInsets.all(14),
                     constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.85),
                     decoration: BoxDecoration(
-                      color: m.esUsuario ? const Color(0xFF2B5278) : const Color(0xFF1E2230),
+                      color: m.esUsuario ? const Color(0xFF007ACC) : const Color(0xFF252A3A),
                       borderRadius: BorderRadius.only(
                         topLeft: const Radius.circular(16),
                         topRight: const Radius.circular(16),
-                        bottomLeft: m.esUsuario ? const Radius.circular(16) : Radius.zero,
-                        bottomRight: m.esUsuario ? Radius.zero : const Radius.circular(16),
+                        bottomLeft: m.esUsuario ? const Radius.circular(16) : const Radius.circular(4),
+                        bottomRight: m.esUsuario ? const Radius.circular(4) : const Radius.circular(16),
                       ),
-                      border: m.esUsuario ? null : Border.all(color: Colors.white10),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
-                    child: m.esUsuario
-                        ? Text(m.texto, style: const TextStyle(color: Colors.white, fontSize: 15))
-                        : MarkdownBody(
-                            data: m.texto,
-                            styleSheet: MarkdownStyleSheet(
-                              p: const TextStyle(color: Colors.white70, fontSize: 14),
-                              h1: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold),
-                              h2: const TextStyle(color: Colors.cyan, fontWeight: FontWeight.bold),
-                              code: const TextStyle(backgroundColor: Colors.black45, color: Colors.amberAccent),
-                            ),
-                          ),
+                    child: MarkdownBody(
+                      data: m.texto,
+                      styleSheet: MarkdownStyleSheet(
+                        p: const TextStyle(color: Colors.white, fontSize: 14),
+                        strong: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold),
+                        h1: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                        h2: const TextStyle(color: Colors.cyanAccent, fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
                   ),
                 );
               },
@@ -226,11 +307,11 @@ class _ChatAsistenteScreenState extends State<ChatAsistenteScreen> {
 
           if (_estaCargando)
             const Padding(
-              padding: EdgeInsets.all(8.0),
-              child: CircularProgressIndicator(color: Colors.cyanAccent),
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: LinearProgressIndicator(backgroundColor: Color(0xFF1E2230), color: Colors.cyanAccent),
             ),
 
-          // Barra Inferior de Entrada (Texto y Micrófono)
+          // Barra inferior de entrada de texto y voz
           Container(
             padding: const EdgeInsets.all(12),
             color: const Color(0xFF1E2230),
@@ -241,24 +322,36 @@ class _ChatAsistenteScreenState extends State<ChatAsistenteScreen> {
                     icon: Icon(
                       _escuchandoVoz ? Icons.mic : Icons.mic_none,
                       color: _escuchandoVoz ? Colors.redAccent : Colors.cyanAccent,
+                      size: 28,
                     ),
                     onPressed: _escucharVoz,
+                    tooltip: 'Dictado por Voz',
                   ),
                   Expanded(
                     child: TextField(
                       controller: _textController,
                       style: const TextStyle(color: Colors.white),
-                      decoration: const InputDecoration(
-                        hintText: "Pregunta o dicta un comando...",
-                        hintStyle: TextStyle(color: Colors.grey),
-                        border: InputBorder.none,
+                      decoration: InputDecoration(
+                        hintText: _escuchandoVoz ? "Escuchando voz..." : "Escribe una consulta o comando...",
+                        hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+                        filled: true,
+                        fillColor: const Color(0xFF12141C),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
                       onSubmitted: (_) => _enviarMensaje(),
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.send, color: Colors.cyanAccent),
-                    onPressed: () => _enviarMensaje(),
+                  const SizedBox(width: 8),
+                  CircleAvatar(
+                    backgroundColor: Colors.cyanAccent,
+                    child: IconButton(
+                      icon: const Icon(Icons.send, color: Colors.black),
+                      onPressed: () => _enviarMensaje(),
+                    ),
                   ),
                 ],
               ),
