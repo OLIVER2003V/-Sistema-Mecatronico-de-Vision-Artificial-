@@ -2,11 +2,12 @@
 """
 main.py --- Microservicio Independiente de IA (SORT-MATIC IA Assistant).
 Procesa consultas conversacionales, genera reportes ejecutivos en tiempo real y gestiona streaming WebSockets.
+Soporta fallback automático entre modelos Gemini configurables por variable de entorno.
 """
 
 import os
 import asyncio
-from typing import Optional
+from typing import Optional, List, Tuple
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -25,7 +26,7 @@ from agente_rag import obtener_contexto_planta, ejecutar_comando_faja
 app = FastAPI(
     title="SORT-MATIC IA Assistant Microservice",
     description="Microservicio desacoplado de Inteligencia Artificial Generativa y RAG",
-    version="1.0.0"
+    version="1.1.0"
 )
 
 app.add_middleware(
@@ -36,7 +37,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+MODELOS_DEFAULT = "gemini-2.5-flash,gemini-2.0-flash,gemini-1.5-flash,gemini-3.6-flash"
+
+
+def obtener_lista_modelos() -> List[str]:
+    """Retorna la lista ordenada de modelos Gemini a intentar en orden de preferencia."""
+    raw = os.environ.get("GEMINI_MODELS", MODELOS_DEFAULT)
+    models = [m.strip() for m in raw.split(",") if m.strip()]
+    return models if models else ["gemini-2.5-flash"]
 
 
 def obtener_cliente_gemini():
@@ -49,6 +57,49 @@ def obtener_cliente_gemini():
     except Exception as e:
         print(f"Error al inicializar Google Gemini Client: {e}")
         return None
+
+
+def generar_contenido_con_fallback(client, contents: str) -> Tuple[object, str]:
+    """
+    Intenta generar contenido probando secuencialmente la lista de modelos configurados.
+    Evita fallas cuando un modelo específico experimenta sobrecarga (HTTP 503 / 429).
+    """
+    modelos = obtener_lista_modelos()
+    ultimo_error = None
+    for model_name in modelos:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=contents
+            )
+            return response, model_name
+        except Exception as e:
+            print(f"⚠️ Modelo '{model_name}' fallo ({e}). Reintentando con el siguiente modelo de la lista...")
+            ultimo_error = e
+    if ultimo_error is not None:
+        raise ultimo_error
+    raise RuntimeError("No hay modelos de IA disponibles para procesar la solicitud.")
+
+
+def generar_stream_con_fallback(client, contents: str):
+    """
+    Intenta iniciar streaming probando secuencialmente la lista de modelos configurados.
+    """
+    modelos = obtener_lista_modelos()
+    ultimo_error = None
+    for model_name in modelos:
+        try:
+            response = client.models.generate_content_stream(
+                model=model_name,
+                contents=contents
+            )
+            return response, model_name
+        except Exception as e:
+            print(f"⚠️ Streaming con modelo '{model_name}' fallo ({e}). Reintentando con el siguiente modelo...")
+            ultimo_error = e
+    if ultimo_error is not None:
+        raise ultimo_error
+    raise RuntimeError("No hay modelos de IA disponibles para procesar la solicitud de streaming.")
 
 
 class ConsultaChat(BaseModel):
@@ -67,7 +118,8 @@ def salud():
     return {
         "estado": "ok",
         "servicio": "servicio_ia",
-        "gemini_configurado": bool(os.environ.get("GEMINI_API_KEY"))
+        "gemini_configurado": bool(os.environ.get("GEMINI_API_KEY")),
+        "modelos_configurados": obtener_lista_modelos()
     }
 
 
@@ -93,7 +145,6 @@ def chat_asistente(solicitud: ConsultaChat):
         comando_ejecutado = ejecutar_comando_faja("START")
 
     if not client:
-        # Fallback inteligente si no hay clave de Gemini API configurada
         respuesta_base = (
             f"🤖 **Asistente SORT-MATIC (Modo Offline / Sintético):**\n\n"
             f"He recibido tu consulta: *\"{pregunta}\"*\n\n"
@@ -124,16 +175,14 @@ def chat_asistente(solicitud: ConsultaChat):
     """
 
     try:
-        response = client.models.generate_content(
-            model='gemini-3.6-flash',
-            contents=prompt_sistema
-        )
+        response, modelo_usado = generar_contenido_con_fallback(client, prompt_sistema)
         res_texto = response.text
         if comando_ejecutado:
             res_texto += f"\n\n⚙️ **Acción Ejecutada en Faja:** {comando_ejecutado['mensaje']}"
 
         return {
             "respuesta": res_texto,
+            "modelo_usado": modelo_usado,
             "comando_ejecutado": comando_ejecutado,
             "contexto_usado": contexto
         }
@@ -154,7 +203,6 @@ def generar_reporte_ejecutivo(solicitud: SolicitudReporte):
     client = obtener_cliente_gemini()
 
     if not client:
-        # Generador de reporte sintético cuando no hay API Key activa
         return {
             "reporte_markdown": f"""# 📊 Reporte Ejecutivo de Producción y Calidad (SORT-MATIC)
 **Tipo:** {solicitud.tipo.upper()} | **Generado por:** {solicitud.usuario}
@@ -188,12 +236,10 @@ def generar_reporte_ejecutivo(solicitud: SolicitudReporte):
     """
 
     try:
-        response = client.models.generate_content(
-            model='gemini-3.6-flash',
-            contents=prompt_reporte
-        )
+        response, modelo_usado = generar_contenido_con_fallback(client, prompt_reporte)
         return {
             "reporte_markdown": response.text,
+            "modelo_usado": modelo_usado,
             "contexto": contexto
         }
     except Exception as e:
@@ -226,17 +272,18 @@ async def websocket_chat_asistente(websocket: WebSocket):
                 })
                 continue
 
-            # Streaming de respuesta con Gemini
+            # Streaming de respuesta con Gemini probando fallback entre modelos
             try:
-                response = client.models.generate_content_stream(
-                    model='gemini-3.6-flash',
-                    contents=f"{contexto}\n\nEl usuario ({usuario}) pregunta en la app móvil: '{pregunta}'"
+                response, modelo_usado = generar_stream_con_fallback(
+                    client,
+                    f"{contexto}\n\nEl usuario ({usuario}) pregunta en la app móvil: '{pregunta}'"
                 )
                 for chunk in response:
                     if chunk.text:
                         await websocket.send_json({
                             "tipo": "chunk",
-                            "texto": chunk.text
+                            "texto": chunk.text,
+                            "modelo": modelo_usado
                         })
                         await asyncio.sleep(0.02)
 
