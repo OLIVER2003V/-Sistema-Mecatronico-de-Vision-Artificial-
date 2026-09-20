@@ -78,11 +78,11 @@ class EsDispositivoVision(BasePermission):
 
 
 class EsDispositivoVisionOSupervisor(BasePermission):
-    """Lo que consume vision/ pero que el supervisor tambien puede consultar."""
+    """Lo que consume vision/ o servicio_ia pero que el personal de linea tambien puede consultar."""
 
-    message = "Se requiere la clave del dispositivo o el rol de Supervisor."
+    message = "Se requiere la clave del dispositivo o una cuenta activa."
 
     def has_permission(self, request, view):
-        return EsDispositivoVision().has_permission(request, view) or EsSupervisor().has_permission(
+        return EsDispositivoVision().has_permission(request, view) or EsPersonalDeLinea().has_permission(
             request, view
         )
