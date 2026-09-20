@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/auth_service.dart';
-import '../asistente/chat_screen.dart';
+import '../dashboard/dynamic_canvas_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -44,7 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final UsuarioSesion sesion = res['usuario'];
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (context) => ChatAsistenteScreen(usuarioSesion: sesion),
+          builder: (context) => DynamicCanvasScreen(usuarioSesion: sesion),
         ),
       );
     } else {

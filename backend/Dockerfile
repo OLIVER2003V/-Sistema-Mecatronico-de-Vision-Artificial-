@@ -25,6 +25,6 @@ USER sortmatic
 EXPOSE 8000
 
 HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
-    CMD curl -fsS http://localhost:8000/api/salud/ || exit 1
+    CMD curl -fsS -H "X-Forwarded-Proto: https" http://localhost:8000/api/salud/ || exit 1
 
 CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py collectstatic --noinput && daphne -b 0.0.0.0 -p 8000 sortmatic.asgi:application"]

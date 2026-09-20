@@ -59,7 +59,7 @@ def obtener_cliente_gemini():
         return None
 
 
-def generar_contenido_con_fallback(client, contents: str) -> Tuple[object, str]:
+def generar_contenido_con_fallback(client, contents: str, config: Optional[dict] = None) -> Tuple[object, str]:
     """
     Intenta generar contenido probando secuencialmente la lista de modelos configurados.
     Evita fallas cuando un modelo específico experimenta sobrecarga (HTTP 503 / 429).
@@ -68,10 +68,10 @@ def generar_contenido_con_fallback(client, contents: str) -> Tuple[object, str]:
     ultimo_error = None
     for model_name in modelos:
         try:
-            response = client.models.generate_content(
-                model=model_name,
-                contents=contents
-            )
+            kwargs = {"model": model_name, "contents": contents}
+            if config:
+                kwargs["config"] = config
+            response = client.models.generate_content(**kwargs)
             return response, model_name
         except Exception as e:
             print(f"⚠️ Modelo '{model_name}' fallo ({e}). Reintentando con el siguiente modelo de la lista...")
@@ -102,10 +102,17 @@ def generar_stream_con_fallback(client, contents: str):
     raise RuntimeError("No hay modelos de IA disponibles para procesar la solicitud de streaming.")
 
 
+class TurnoHistorial(BaseModel):
+    es_usuario: bool
+    texto: str
+
+
 class ConsultaChat(BaseModel):
     pregunta: str
     usuario: Optional[str] = "Operador"
     rol: Optional[str] = "OPERADOR"
+    conversacion_id: Optional[str] = None
+    historial: Optional[List[TurnoHistorial]] = None
 
 
 class SolicitudReporte(BaseModel):
@@ -126,9 +133,12 @@ def salud():
 @app.post("/chat")
 def chat_asistente(solicitud: ConsultaChat):
     """
-    Procesa una pregunta del operador o supervisor, inyecta el contexto de planta en tiempo real
-    y devuelve la respuesta generativa con posibles acciones ejecutadas.
+    Procesa una pregunta del operador o supervisor, inyecta el contexto de planta en tiempo real,
+    evalúa el historial conversacional y devuelve una respuesta estructurada en JSON nativo
+    con widgets dinámicos y acción de lienzo (accion_canvas).
     """
+    import json
+
     pregunta = solicitud.pregunta.strip()
     if not pregunta:
         raise HTTPException(status_code=400, detail="La pregunta no puede estar vacía.")
@@ -136,7 +146,7 @@ def chat_asistente(solicitud: ConsultaChat):
     contexto = obtener_contexto_planta()
     client = obtener_cliente_gemini()
 
-    # Detección simple de intención de comando físico
+    # Detección de comandos de hardware sobre la faja
     comando_ejecutado = None
     p_lower = pregunta.lower()
     if "parar faja" in p_lower or "detener faja" in p_lower or "stop faja" in p_lower:
@@ -144,52 +154,173 @@ def chat_asistente(solicitud: ConsultaChat):
     elif "arrancar faja" in p_lower or "iniciar faja" in p_lower or "start faja" in p_lower:
         comando_ejecutado = ejecutar_comando_faja("START")
 
+    # Formatear el historial reciente enviado por la app
+    historial_str = ""
+    if solicitud.historial:
+        for t in solicitud.historial[-6:]:
+            rol_lbl = "Usuario" if t.es_usuario else "Asistente IA"
+            historial_str += f"- {rol_lbl}: {t.texto}\n"
+    if not historial_str:
+        historial_str = "(Sin historial previo en esta sesión)"
+
+    # Fallback sintético si Gemini no está configurado (sin API key)
     if not client:
         respuesta_base = (
-            f"🤖 **Asistente SORT-MATIC (Modo Offline / Sintético):**\n\n"
-            f"He recibido tu consulta: *\"{pregunta}\"*\n\n"
-            f"**Estado actual detectado en planta:**\n"
-            f"{contexto}\n\n"
+            f"🤖 **Asistente SORT-MATIC (Modo Autónomo / Sintético):**\n\n"
+            f"Consulta recibida: *\"{pregunta}\"*\n\n"
+            f"**Resumen de Planta:**\n{contexto}\n"
         )
         if comando_ejecutado:
-            respuesta_base += f"⚠️ **Acción Ejecutada:** {comando_ejecutado['mensaje']}\n"
-        else:
-            respuesta_base += "*(Para activar las respuestas generativas avanzadas con IA, asegúrate de configurar GEMINI_API_KEY en las variables de entorno).*"
+            respuesta_base += f"\n⚙️ **Acción:** {comando_ejecutado['mensaje']}"
+
+        # Determinar widgets sintéticos
+        widgets_sinteticos = []
+        accion = "agregar" if "agrega" in p_lower or "añade" in p_lower else "reemplazar"
+        if "limpiar" in p_lower or "borrar" in p_lower:
+            accion = "limpiar"
+
+        if "botella" in p_lower or "conteo" in p_lower or "reporte" in p_lower or "escaneo" in p_lower:
+            widgets_sinteticos.append({
+                "tipo": "kpi_card",
+                "titulo": "Total Botellas Inspeccionadas",
+                "valor": 1250,
+                "subtitulo": "Lote Activo",
+                "color": "cyan"
+            })
+            widgets_sinteticos.append({
+                "tipo": "grafico_barras",
+                "titulo": "Botellas por Material Escaneado",
+                "datos": [
+                    {"etiqueta": "PET", "valor": 800},
+                    {"etiqueta": "Vidrio", "valor": 300},
+                    {"etiqueta": "Aluminio", "valor": 150}
+                ]
+            })
 
         return {
             "respuesta": respuesta_base,
+            "accion_canvas": accion,
+            "widgets": widgets_sinteticos,
+            "conversacion_id": solicitud.conversacion_id,
             "comando_ejecutado": comando_ejecutado,
             "contexto_usado": contexto
         }
 
     prompt_sistema = f"""
-    Eres el Asistente Virtual Inteligente de la planta EMBOL S.A. para el sistema mecatrónico SORT-MATIC.
-    Tu objetivo es ayudar a los operadores y supervisores de calidad a monitorear la faja transportadora,
-    diagnosticar botellas defectuosas (Estación 1: rota, sin tapa, sin etiqueta) y nivel de llenado bajo < 60% (Estación 2).
+Eres el Asistente Virtual Inteligente de la planta EMBOL S.A. para el sistema mecatrónico SORT-MATIC.
+Tu objetivo es ayudar a los operadores y supervisores de calidad a monitorear la faja transportadora,
+diagnosticar mermas y generar reportes y dashboards dinámicos interactivos.
 
-    {contexto}
+=== CONTEXTO DE PLANTA EN TIEMPO REAL ===
+{contexto}
 
-    El usuario ({solicitud.usuario}, Rol: {solicitud.rol}) pregunta: "{pregunta}"
+=== HISTORIAL DE CONVERSACIÓN ===
+{historial_str}
 
-    Responde de forma concisa, profesional y estructurada en formato Markdown. Si se ejecutó algún comando, confírmalo claramente.
-    """
+=== SOLICITUD DEL USUARIO ===
+Usuario: {solicitud.usuario} (Rol: {solicitud.rol})
+Pregunta/Instrucción: "{pregunta}"
+
+=== REGLA OBLIGATORIA: DEBES RESPONDER EXCLUSIVAMENTE CON UN OBJETO JSON VÁLIDO ===
+No agregues explicaciones fuera del JSON. El JSON debe tener exactamente estas claves:
+
+{{
+  "respuesta": "Texto explicativo amigable en formato Markdown dirigido al usuario.",
+  "accion_canvas": "reemplazar | agregar | limpiar",
+  "widgets": [
+    {{
+      "tipo": "kpi_card",
+      "titulo": "Título de la métrica",
+      "valor": 1250,
+      "subtitulo": "Descripción corta",
+      "color": "cyan | green | amber | red | blue"
+    }},
+    {{
+      "tipo": "grafico_barras",
+      "titulo": "Título del gráfico",
+      "datos": [
+        {{ "etiqueta": "PET", "valor": 800 }},
+        {{ "etiqueta": "Vidrio", "valor": 300 }}
+      ]
+    }},
+    {{
+      "tipo": "grafico_pie",
+      "titulo": "Título de la gráfica circular",
+      "datos": [
+        {{ "etiqueta": "Aceptadas", "valor": 1140, "color": "green" }},
+        {{ "etiqueta": "Defectuosas", "valor": 60, "color": "red" }}
+      ]
+    }},
+    {{
+      "tipo": "tabla_datos",
+      "titulo": "Título de la tabla",
+      "columnas": ["Columna1", "Columna2", "Columna3"],
+      "filas": [
+        ["Dato1", "Dato2", "Dato3"]
+      ]
+    }},
+    {{
+      "tipo": "alerta_status",
+      "titulo": "Título de alerta",
+      "mensaje": "Mensaje detallado",
+      "nivel": "exito | advertencia | peligro | info"
+    }}
+  ]
+}}
+
+REGLAS PARA "accion_canvas":
+- Usar "reemplazar": cuando el usuario pida un nuevo reporte general, un resumen de escaneo o cuando haga una nueva consulta de datos sin indicar agregar a lo existente.
+- Usar "agregar": cuando el usuario diga explícitamente "agrega", "añade", "adicionalmente", "también incluye", etc.
+- Usar "limpiar": cuando el usuario diga "limpiar pantalla", "borrar lienzo", "reiniciar tablero", etc.
+
+Si la consulta es puramente conversacional y no requiere componentes visuales, "widgets" debe ser una lista vacía [].
+Los valores numéricos pueden ser enteros o decimales.
+"""
+
+    config_json = {"response_mime_type": "application/json"}
 
     try:
-        response, modelo_usado = generar_contenido_con_fallback(client, prompt_sistema)
-        res_texto = response.text
+        response, modelo_usado = generar_contenido_con_fallback(client, prompt_sistema, config=config_json)
+        raw_text = response.text.strip()
+
+        # Intentar parsear el JSON devuelto por Gemini
+        try:
+            parsed = json.loads(raw_text)
+        except Exception:
+            # Limpieza defensiva en caso de delimitadores de código markdown
+            clean_text = raw_text.replace("```json", "").replace("```", "").strip()
+            parsed = json.loads(clean_text)
+
+        respuesta_str = parsed.get("respuesta", "Reporte procesado correctamente.")
         if comando_ejecutado:
-            res_texto += f"\n\n⚙️ **Acción Ejecutada en Faja:** {comando_ejecutado['mensaje']}"
+            respuesta_str += f"\n\n⚙️ **Acción Ejecutada en Faja:** {comando_ejecutado['mensaje']}"
 
         return {
-            "respuesta": res_texto,
+            "respuesta": respuesta_str,
+            "accion_canvas": parsed.get("accion_canvas", "reemplazar"),
+            "widgets": parsed.get("widgets", []),
+            "conversacion_id": solicitud.conversacion_id,
             "modelo_usado": modelo_usado,
             "comando_ejecutado": comando_ejecutado,
             "contexto_usado": contexto
         }
     except Exception as e:
+        print(f"Error procesando JSON de Gemini: {e}")
+        # Retorno defensivo estructurado
         return {
-            "respuesta": f"Ocurrió un error al consultar el motor IA: {e}\n\nResumen actual de planta:\n{contexto}",
-            "comando_ejecutado": comando_ejecutado
+            "respuesta": f"He procesado tu consulta. Sin embargo, ocurrió un detalle al estructurar los gráficos ({e}).\n\nResumen actual:\n{contexto}",
+            "accion_canvas": "reemplazar",
+            "widgets": [
+                {
+                    "tipo": "alerta_status",
+                    "titulo": "Modo Resumen Directo",
+                    "mensaje": f"Se muestra información consolidada de planta.",
+                    "nivel": "info"
+                }
+            ],
+            "conversacion_id": solicitud.conversacion_id,
+            "comando_ejecutado": comando_ejecutado,
+            "contexto_usado": contexto
         }
 
 

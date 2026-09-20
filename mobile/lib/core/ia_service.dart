@@ -12,6 +12,8 @@ class IAService {
     required String pregunta,
     String usuario = 'Operador Móvil',
     String rol = 'OPERADOR',
+    String? conversacionId,
+    List<Map<String, dynamic>>? historial,
   }) async {
     try {
       final response = await http.post(
@@ -21,6 +23,8 @@ class IAService {
           'pregunta': pregunta,
           'usuario': usuario,
           'rol': rol,
+          'conversacion_id': conversacionId,
+          'historial': historial,
         }),
       );
 
@@ -29,11 +33,15 @@ class IAService {
       } else {
         return {
           'respuesta': '⚠️ Error de servidor (${response.statusCode}): No se pudo procesar la consulta de IA.',
+          'accion_canvas': 'reemplazar',
+          'widgets': [],
         };
       }
     } catch (e) {
       return {
         'respuesta': '⚠️ Error de conexión con el Microservicio de IA ($e).',
+        'accion_canvas': 'reemplazar',
+        'widgets': [],
       };
     }
   }
