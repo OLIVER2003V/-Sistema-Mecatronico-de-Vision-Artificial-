@@ -142,6 +142,7 @@ def chat_asistente(solicitud: ConsultaChat):
     pregunta = solicitud.pregunta.strip()
     if not pregunta:
         raise HTTPException(status_code=400, detail="La pregunta no puede estar vacía.")
+    p_lower = pregunta.lower()
 
     contexto = obtener_contexto_planta()
     client = obtener_cliente_gemini()
