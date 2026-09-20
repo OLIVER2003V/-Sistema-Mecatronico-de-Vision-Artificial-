@@ -166,3 +166,10 @@ Para reentrenar con mas datos, ver el comando de Ultralytics al final de
 - Un solo programa a la vez puede usar el COM. Cerra el Monitor Serie antes de
   correr Python o de subir codigo.
 - Sin `vision/best.pt` el inspector no arranca (avisa con la ruta donde lo busca).
+
+## Despliegue en la Nube (AWS EC2 + S3 + Docker)
+
+Para desplegar el proyecto en AWS con PostgreSQL en contenedor Docker y almacenamiento en Amazon S3, consulta la guía completa:
+- [DEPLOY_AWS.md](DEPLOY_AWS.md)
+- Archivo de entorno de producción: [.env.production.example](.env.production.example)
+
