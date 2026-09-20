@@ -140,11 +140,17 @@ else:
             "BACKEND": "channels_redis.core.RedisChannelLayer",
             "CONFIG": {
                 "hosts": [
-                    (
-                        os.environ.get("REDIS_HOST", "redis"),
-                        int(os.environ.get("REDIS_PORT", 6379)),
-                    )
+                    {
+                        "address": (
+                            os.environ.get("REDIS_HOST", "redis"),
+                            int(os.environ.get("REDIS_PORT", 6379)),
+                        ),
+                        "socket_timeout": 10,
+                        "socket_connect_timeout": 10,
+                    }
                 ],
+                "capacity": 1500,
+                "expiry": 10,
             },
         }
     }
