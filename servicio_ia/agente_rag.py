@@ -7,7 +7,8 @@ Consulta métricas e inspecciones en tiempo real al backend Django y prepara el 
 import os
 import requests
 
-BACKEND_URL = os.environ.get("BACKEND_URL", "http://backend:8000").rstrip("/")
+BACKEND_URL = os.environ.get("BACKEND_URL") or os.environ.get("DJANGO_BACKEND_URL") or "http://localhost:8000"
+BACKEND_URL = BACKEND_URL.rstrip("/")
 VISION_API_KEY = os.environ.get("VISION_API_KEY", "clave-vision-de-desarrollo-cambiar-en-produccion")
 
 HEADERS = {
