@@ -308,164 +308,170 @@ class _AsistenteBurbujaModalState extends State<AsistenteBurbujaModal> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.75,
-      decoration: const BoxDecoration(
-        color: Color(0xFF1E293B),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: Column(
-        children: [
-          // Header de la Burbuja con Historial de Usuario
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: const BoxDecoration(
-              color: Color(0xFF0F172A),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: const BoxDecoration(color: Colors.cyan, shape: BoxShape.circle),
-                  child: const Icon(Icons.smart_toy_rounded, color: Colors.black, size: 20),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text("ASISTENTE VIRTUAL IA", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
-                      Text("👤 $_nombreUsuario ($rolLabel) - Historial Activo", style: const TextStyle(color: Colors.grey, fontSize: 10)),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete_outline_rounded, color: Colors.amberAccent, size: 20),
-                  onPressed: _limpiarHistorial,
-                  tooltip: 'Borrar historial de chat',
-                ),
-                IconButton(
-                  icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ],
-            ),
-          ),
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
-          // Chips de Solicitud de Componentes Dinámicos
-          Container(
-            height: 42,
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            color: const Color(0xFF1A2234),
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                ActionChip(
-                  avatar: const Icon(Icons.inventory_2, size: 14, color: Colors.cyanAccent),
-                  label: const Text('🍾 Botellas Escaneadas', style: TextStyle(color: Colors.white, fontSize: 10)),
-                  backgroundColor: const Color(0xFF334155),
-                  onPressed: () => _enviarMensaje("Muestra las botellas escaneadas"),
-                ),
-                const SizedBox(width: 6),
-                ActionChip(
-                  avatar: const Icon(Icons.bar_chart, size: 14, color: Colors.orangeAccent),
-                  label: const Text('📊 Gráfico Mermas', style: TextStyle(color: Colors.white, fontSize: 10)),
-                  backgroundColor: const Color(0xFF334155),
-                  onPressed: () => _enviarMensaje("Genera el gráfico de mermas por estación"),
-                ),
-                const SizedBox(width: 6),
-                ActionChip(
-                  avatar: const Icon(Icons.pie_chart, size: 14, color: Colors.greenAccent),
-                  label: const Text('📈 Rendimiento Yield', style: TextStyle(color: Colors.white, fontSize: 10)),
-                  backgroundColor: const Color(0xFF334155),
-                  onPressed: () => _enviarMensaje("Muestra el gráfico de rendimiento yield"),
-                ),
-                const SizedBox(width: 6),
-                ActionChip(
-                  avatar: const Icon(Icons.speed, size: 14, color: Colors.redAccent),
-                  label: const Text('⚙️ Estado de Faja', style: TextStyle(color: Colors.white, fontSize: 10)),
-                  backgroundColor: const Color(0xFF334155),
-                  onPressed: () => _enviarMensaje("Muestra el estado de la faja"),
-                ),
-              ],
-            ),
-          ),
-
-          // Lista de Mensajes del Historial del Usuario
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(12),
-              itemCount: _mensajes.length,
-              itemBuilder: (context, index) {
-                final m = _mensajes[index];
-                return Align(
-                  alignment: m.esUsuario ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    padding: const EdgeInsets.all(12),
-                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
-                    decoration: BoxDecoration(
-                      color: m.esUsuario ? Colors.cyan.shade700 : const Color(0xFF0F172A),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: MarkdownBody(
-                      data: m.texto,
-                      styleSheet: MarkdownStyleSheet(
-                        p: const TextStyle(color: Colors.white, fontSize: 13),
-                        strong: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-
-          if (_estaCargando)
-            const LinearProgressIndicator(backgroundColor: Color(0xFF1E293B), color: Colors.cyan),
-
-          // Entrada inferior
-          Container(
-            padding: const EdgeInsets.all(8),
-            color: const Color(0xFF0F172A),
-            child: SafeArea(
+    return Padding(
+      padding: EdgeInsets.only(bottom: bottomInset),
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.75,
+        decoration: const BoxDecoration(
+          color: Color(0xFF1E293B),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            // Header de la Burbuja con Historial de Usuario
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: const BoxDecoration(
+                color: Color(0xFF0F172A),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
               child: Row(
                 children: [
-                  IconButton(
-                    icon: Icon(_escuchandoVoz ? Icons.mic : Icons.mic_none, color: _escuchandoVoz ? Colors.redAccent : Colors.cyan),
-                    onPressed: _escucharVoz,
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(color: Colors.cyan, shape: BoxShape.circle),
+                    child: const Icon(Icons.smart_toy_rounded, color: Colors.black, size: 20),
                   ),
+                  const SizedBox(width: 10),
                   Expanded(
-                    child: TextField(
-                      controller: _textController,
-                      style: const TextStyle(color: Colors.white, fontSize: 13),
-                      decoration: InputDecoration(
-                        hintText: "Escribe tu consulta o comando...",
-                        hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-                        filled: true,
-                        fillColor: const Color(0xFF1E293B),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
-                      ),
-                      onSubmitted: (_) => _enviarMensaje(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text("ASISTENTE VIRTUAL IA", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+                        Text("👤 $_nombreUsuario ($rolLabel) - Historial Activo", style: const TextStyle(color: Colors.grey, fontSize: 10)),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  CircleAvatar(
-                    backgroundColor: Colors.cyan,
-                    radius: 20,
-                    child: IconButton(
-                      icon: const Icon(Icons.send, color: Colors.black, size: 18),
-                      onPressed: () => _enviarMensaje(),
-                    ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline_rounded, color: Colors.amberAccent, size: 20),
+                    onPressed: _limpiarHistorial,
+                    tooltip: 'Borrar historial de chat',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
               ),
             ),
-          ),
-        ],
+
+            // Chips de Solicitud de Componentes Dinámicos
+            Container(
+              height: 42,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              color: const Color(0xFF1A2234),
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: [
+                  ActionChip(
+                    avatar: const Icon(Icons.inventory_2, size: 14, color: Colors.cyanAccent),
+                    label: const Text('🍾 Botellas Escaneadas', style: TextStyle(color: Colors.white, fontSize: 10)),
+                    backgroundColor: const Color(0xFF334155),
+                    onPressed: () => _enviarMensaje("Muestra las botellas escaneadas"),
+                  ),
+                  const SizedBox(width: 6),
+                  ActionChip(
+                    avatar: const Icon(Icons.bar_chart, size: 14, color: Colors.orangeAccent),
+                    label: const Text('📊 Gráfico Mermas', style: TextStyle(color: Colors.white, fontSize: 10)),
+                    backgroundColor: const Color(0xFF334155),
+                    onPressed: () => _enviarMensaje("Genera el gráfico de mermas por estación"),
+                  ),
+                  const SizedBox(width: 6),
+                  ActionChip(
+                    avatar: const Icon(Icons.pie_chart, size: 14, color: Colors.greenAccent),
+                    label: const Text('📈 Rendimiento Yield', style: TextStyle(color: Colors.white, fontSize: 10)),
+                    backgroundColor: const Color(0xFF334155),
+                    onPressed: () => _enviarMensaje("Muestra el gráfico de rendimiento yield"),
+                  ),
+                  const SizedBox(width: 6),
+                  ActionChip(
+                    avatar: const Icon(Icons.speed, size: 14, color: Colors.redAccent),
+                    label: const Text('⚙️ Estado de Faja', style: TextStyle(color: Colors.white, fontSize: 10)),
+                    backgroundColor: const Color(0xFF334155),
+                    onPressed: () => _enviarMensaje("Muestra el estado de la faja"),
+                  ),
+                ],
+              ),
+            ),
+
+            // Lista de Mensajes del Historial del Usuario
+            Expanded(
+              child: ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.all(12),
+                itemCount: _mensajes.length,
+                itemBuilder: (context, index) {
+                  final m = _mensajes[index];
+                  return Align(
+                    alignment: m.esUsuario ? Alignment.centerRight : Alignment.centerLeft,
+                    child: Container(
+                      margin: const EdgeInsets.symmetric(vertical: 4),
+                      padding: const EdgeInsets.all(12),
+                      constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.8),
+                      decoration: BoxDecoration(
+                        color: m.esUsuario ? Colors.cyan.shade700 : const Color(0xFF0F172A),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: MarkdownBody(
+                        data: m.texto,
+                        styleSheet: MarkdownStyleSheet(
+                          p: const TextStyle(color: Colors.white, fontSize: 13),
+                          strong: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+            if (_estaCargando)
+              const LinearProgressIndicator(backgroundColor: Color(0xFF1E293B), color: Colors.cyan),
+
+            // Entrada inferior
+            Container(
+              padding: const EdgeInsets.all(8),
+              color: const Color(0xFF0F172A),
+              child: SafeArea(
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(_escuchandoVoz ? Icons.mic : Icons.mic_none, color: _escuchandoVoz ? Colors.redAccent : Colors.cyan),
+                      onPressed: _escucharVoz,
+                    ),
+                    Expanded(
+                      child: TextField(
+                        controller: _textController,
+                        style: const TextStyle(color: Colors.white, fontSize: 13),
+                        onTap: _scrollHaciaAbajo,
+                        decoration: InputDecoration(
+                          hintText: "Escribe tu consulta o comando...",
+                          hintStyle: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                          filled: true,
+                          fillColor: const Color(0xFF1E293B),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: BorderSide.none),
+                        ),
+                        onSubmitted: (_) => _enviarMensaje(),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    CircleAvatar(
+                      backgroundColor: Colors.cyan,
+                      radius: 20,
+                      child: IconButton(
+                        icon: const Icon(Icons.send, color: Colors.black, size: 18),
+                        onPressed: () => _enviarMensaje(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

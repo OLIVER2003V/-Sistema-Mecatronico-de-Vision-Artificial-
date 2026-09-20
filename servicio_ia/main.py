@@ -142,17 +142,27 @@ def chat_asistente(solicitud: ConsultaChat):
     pregunta = solicitud.pregunta.strip()
     if not pregunta:
         raise HTTPException(status_code=400, detail="La pregunta no puede estar vacía.")
+    p_lower = pregunta.lower()
 
     contexto = obtener_contexto_planta()
     client = obtener_cliente_gemini()
 
-    # Detección de comandos de hardware sobre la faja
-    comando_ejecutado = None
-    p_lower = pregunta.lower()
-    if "parar faja" in p_lower or "detener faja" in p_lower or "stop faja" in p_lower:
-        comando_ejecutado = ejecutar_comando_faja("STOP")
-    elif "arrancar faja" in p_lower or "iniciar faja" in p_lower or "start faja" in p_lower:
-        comando_ejecutado = ejecutar_comando_faja("START")
+    # Detección inteligente de comandos de hardware (soporta faja, máquina, maqueta, sistema, motor, línea, etc.)
+    def detectar_comando_texto(p: str) -> Optional[str]:
+        p = p.lower()
+        if any(w in p for w in ["parar", "detener", "stop", "apagar", "frenar", "desactivar"]):
+            if any(t in p for t in ["faja", "maquina", "máquina", "maqueta", "sistema", "motor", "linea", "línea", "equipo", "proceso", "banda"]):
+                return "STOP"
+        if any(w in p for w in ["arrancar", "iniciar", "start", "encender", "activar", "poner en marcha"]):
+            if any(t in p for t in ["faja", "maquina", "máquina", "maqueta", "sistema", "motor", "linea", "línea", "equipo", "proceso", "banda"]):
+                return "START"
+        if any(w in p for w in ["reiniciar", "reset", "resetear", "restablecer"]):
+            if any(t in p for t in ["faja", "maquina", "máquina", "maqueta", "sistema", "motor", "linea", "línea", "equipo", "proceso", "banda"]):
+                return "RESET"
+        return None
+
+    cmd_detectado = detectar_comando_texto(pregunta)
+    comando_ejecutado = ejecutar_comando_faja(cmd_detectado) if cmd_detectado else None
 
     # Formatear el historial reciente enviado por la app
     historial_str = ""
@@ -208,8 +218,11 @@ def chat_asistente(solicitud: ConsultaChat):
 
     prompt_sistema = f"""
 Eres el Asistente Virtual Inteligente de la planta EMBOL S.A. para el sistema mecatrónico SORT-MATIC.
-Tu objetivo es ayudar a los operadores y supervisores de calidad a monitorear la faja transportadora,
-diagnosticar mermas y generar reportes y dashboards dinámicos interactivos.
+Tu objetivo es ayudar a los operadores y supervisores de calidad a:
+1. Monitorear en tiempo real la faja transportadora, la maqueta mecatrónica y las estaciones de inspección visual por computadora.
+2. Generar dashboards interactivos, reportes ejecutivos, gráficos de mermas (barras, circular/pie), tablas de datos y tarjetas de KPIs en el lienzo principal (`widgets` y `accion_canvas`).
+3. Diagnosticar causas de defectos y mermas por estación.
+4. Interpretar intenciones de control de hardware sobre la máquina, faja, maqueta o motor cuando el usuario lo solicite.
 
 === CONTEXTO DE PLANTA EN TIEMPO REAL ===
 {contexto}
@@ -221,12 +234,20 @@ diagnosticar mermas y generar reportes y dashboards dinámicos interactivos.
 Usuario: {solicitud.usuario} (Rol: {solicitud.rol})
 Pregunta/Instrucción: "{pregunta}"
 
+=== REGLA DE INTERPRETACÓN DE COMANDOS DE MÁQUINA / MAQUETA ===
+Evalúa la intención del usuario:
+- Si desea apagar, detener, parar, frenar o pausar la máquina, faja, maqueta, motor o línea de producción: asigna `"comando_faja": "STOP"`.
+- Si desea iniciar, arrancar, encender o poner en marcha la máquina, faja, maqueta, motor o línea de producción: asigna `"comando_faja": "START"`.
+- Si desea reiniciar, resetear o restablecer la máquina, faja, maqueta, motor o línea de producción: asigna `"comando_faja": "RESET"`.
+- Si no hay orden de control de hardware: asigna `"comando_faja": null`.
+
 === REGLA OBLIGATORIA: DEBES RESPONDER EXCLUSIVAMENTE CON UN OBJETO JSON VÁLIDO ===
 No agregues explicaciones fuera del JSON. El JSON debe tener exactamente estas claves:
 
 {{
   "respuesta": "Texto explicativo amigable en formato Markdown dirigido al usuario.",
   "accion_canvas": "reemplazar | agregar | limpiar",
+  "comando_faja": "STOP | START | RESET | null",
   "widgets": [
     {{
       "tipo": "kpi_card",
@@ -287,13 +308,18 @@ Los valores numéricos pueden ser enteros o decimales.
         try:
             parsed = json.loads(raw_text)
         except Exception:
-            # Limpieza defensiva en caso de delimitadores de código markdown
             clean_text = raw_text.replace("```json", "").replace("```", "").strip()
             parsed = json.loads(clean_text)
 
-        respuesta_str = parsed.get("respuesta", "Reporte procesado correctamente.")
+        # Si el LLM interpretó un comando de faja/máquina/maqueta que no habíamos ejecutado previamente
+        cmd_ia = parsed.get("comando_faja")
+        if cmd_ia in ("STOP", "START", "RESET") and not comando_ejecutado:
+            comando_ejecutado = ejecutar_comando_faja(cmd_ia)
+
+        respuesta_str = parsed.get("respuesta", "Solicitud procesada correctamente.")
         if comando_ejecutado:
-            respuesta_str += f"\n\n⚙️ **Acción Ejecutada en Faja:** {comando_ejecutado['mensaje']}"
+            if comando_ejecutado.get("mensaje") not in respuesta_str:
+                respuesta_str += f"\n\n⚙️ **Acción Ejecutada en Hardware:** {comando_ejecutado['mensaje']}"
 
         return {
             "respuesta": respuesta_str,
