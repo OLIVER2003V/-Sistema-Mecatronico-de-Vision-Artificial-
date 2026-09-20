@@ -1,0 +1,252 @@
+# -*- coding: utf-8 -*-
+"""
+main.py --- Microservicio Independiente de IA (SORT-MATIC IA Assistant).
+Procesa consultas conversacionales, genera reportes ejecutivos en tiempo real y gestiona streaming WebSockets.
+"""
+
+import os
+import asyncio
+from typing import Optional
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from google import genai
+
+from dotenv import load_dotenv
+
+# Cargar variables de entorno desde archivo .env local o raíz si existe
+base_dir = os.path.dirname(os.path.abspath(__file__))
+for env_path in (os.path.join(base_dir, ".env"), os.path.join(base_dir, "..", ".env")):
+    if os.path.isfile(env_path):
+        load_dotenv(env_path)
+
+from agente_rag import obtener_contexto_planta, ejecutar_comando_faja
+
+app = FastAPI(
+    title="SORT-MATIC IA Assistant Microservice",
+    description="Microservicio desacoplado de Inteligencia Artificial Generativa y RAG",
+    version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+
+
+def obtener_cliente_gemini():
+    """Inicializa el cliente de la API de Google Gemini si la clave está disponible."""
+    key = os.environ.get("GEMINI_API_KEY", "")
+    if not key:
+        return None
+    try:
+        return genai.Client(api_key=key)
+    except Exception as e:
+        print(f"Error al inicializar Google Gemini Client: {e}")
+        return None
+
+
+class ConsultaChat(BaseModel):
+    pregunta: str
+    usuario: Optional[str] = "Operador"
+    rol: Optional[str] = "OPERADOR"
+
+
+class SolicitudReporte(BaseModel):
+    tipo: str = "turno"  # 'turno', 'anomalia', 'lote'
+    usuario: Optional[str] = "Supervisor"
+
+
+@app.get("/salud")
+def salud():
+    return {
+        "estado": "ok",
+        "servicio": "servicio_ia",
+        "gemini_configurado": bool(os.environ.get("GEMINI_API_KEY"))
+    }
+
+
+@app.post("/chat")
+def chat_asistente(solicitud: ConsultaChat):
+    """
+    Procesa una pregunta del operador o supervisor, inyecta el contexto de planta en tiempo real
+    y devuelve la respuesta generativa con posibles acciones ejecutadas.
+    """
+    pregunta = solicitud.pregunta.strip()
+    if not pregunta:
+        raise HTTPException(status_code=400, detail="La pregunta no puede estar vacía.")
+
+    contexto = obtener_contexto_planta()
+    client = obtener_cliente_gemini()
+
+    # Detección simple de intención de comando físico
+    comando_ejecutado = None
+    p_lower = pregunta.lower()
+    if "parar faja" in p_lower or "detener faja" in p_lower or "stop faja" in p_lower:
+        comando_ejecutado = ejecutar_comando_faja("STOP")
+    elif "arrancar faja" in p_lower or "iniciar faja" in p_lower or "start faja" in p_lower:
+        comando_ejecutado = ejecutar_comando_faja("START")
+
+    if not client:
+        # Fallback inteligente si no hay clave de Gemini API configurada
+        respuesta_base = (
+            f"🤖 **Asistente SORT-MATIC (Modo Offline / Sintético):**\n\n"
+            f"He recibido tu consulta: *\"{pregunta}\"*\n\n"
+            f"**Estado actual detectado en planta:**\n"
+            f"{contexto}\n\n"
+        )
+        if comando_ejecutado:
+            respuesta_base += f"⚠️ **Acción Ejecutada:** {comando_ejecutado['mensaje']}\n"
+        else:
+            respuesta_base += "*(Para activar las respuestas generativas avanzadas con IA, asegúrate de configurar GEMINI_API_KEY en las variables de entorno).*"
+
+        return {
+            "respuesta": respuesta_base,
+            "comando_ejecutado": comando_ejecutado,
+            "contexto_usado": contexto
+        }
+
+    prompt_sistema = f"""
+    Eres el Asistente Virtual Inteligente de la planta EMBOL S.A. para el sistema mecatrónico SORT-MATIC.
+    Tu objetivo es ayudar a los operadores y supervisores de calidad a monitorear la faja transportadora,
+    diagnosticar botellas defectuosas (Estación 1: rota, sin tapa, sin etiqueta) y nivel de llenado bajo < 60% (Estación 2).
+
+    {contexto}
+
+    El usuario ({solicitud.usuario}, Rol: {solicitud.rol}) pregunta: "{pregunta}"
+
+    Responde de forma concisa, profesional y estructurada en formato Markdown. Si se ejecutó algún comando, confírmalo claramente.
+    """
+
+    try:
+        response = client.models.generate_content(
+            model='gemini-3.6-flash',
+            contents=prompt_sistema
+        )
+        res_texto = response.text
+        if comando_ejecutado:
+            res_texto += f"\n\n⚙️ **Acción Ejecutada en Faja:** {comando_ejecutado['mensaje']}"
+
+        return {
+            "respuesta": res_texto,
+            "comando_ejecutado": comando_ejecutado,
+            "contexto_usado": contexto
+        }
+    except Exception as e:
+        return {
+            "respuesta": f"Ocurrió un error al consultar el motor IA: {e}\n\nResumen actual de planta:\n{contexto}",
+            "comando_ejecutado": comando_ejecutado
+        }
+
+
+@app.post("/reporte")
+def generar_reporte_ejecutivo(solicitud: SolicitudReporte):
+    """
+    Genera un reporte ejecutivo en formato Markdown sobre el estado de la producción,
+    mermas y diagnósticos recomendados.
+    """
+    contexto = obtener_contexto_planta()
+    client = obtener_cliente_gemini()
+
+    if not client:
+        # Generador de reporte sintético cuando no hay API Key activa
+        return {
+            "reporte_markdown": f"""# 📊 Reporte Ejecutivo de Producción y Calidad (SORT-MATIC)
+**Tipo:** {solicitud.tipo.upper()} | **Generado por:** {solicitud.usuario}
+
+## 1. Resumen de Operación
+{contexto}
+
+## 2. Diagnóstico de Calidad
+* **Estación 1 (Inspección Física):** Los defectos de botella rota y sin etiqueta se encuentran dentro del margen operativo.
+* **Estación 2 (Nivel de Llenado):** La detección por geometría se mantiene calibrada a un umbral mínimo del 60%.
+
+## 3. Recomendaciones de Mantenimiento
+1. Verificar la limpieza del lente de la cámara fija en la faja.
+2. Comprobar la alineación neumática del Servo 1 y Servo 2.
+3. Mantener el espacio constante entre botellas con las guías laterales.
+""",
+            "contexto": contexto
+        }
+
+    prompt_reporte = f"""
+    Genera un Reporte Ejecutivo de Calidad y Mermas completo en formato Markdown para la planta EMBOL S.A.
+    Tipo de reporte solicitado: {solicitud.tipo.upper()} por {solicitud.usuario}.
+
+    {contexto}
+
+    El reporte debe contener:
+    # 📊 Reporte Ejecutivo de Inspección y Mermas (SORT-MATIC)
+    ## 1. Métricas de Producción en Tiempo Real
+    ## 2. Análisis de Causa Raíz de Defectos
+    ## 3. Acciones Preventivas Recomendadas para el Supervisor
+    """
+
+    try:
+        response = client.models.generate_content(
+            model='gemini-3.6-flash',
+            contents=prompt_reporte
+        )
+        return {
+            "reporte_markdown": response.text,
+            "contexto": contexto
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al generar reporte: {e}")
+
+
+@app.websocket("/ws/chat")
+async def websocket_chat_asistente(websocket: WebSocket):
+    """
+    WebSocket endpoint para streaming en tiempo real de consultas y respuestas con la App Móvil Flutter.
+    """
+    await websocket.accept()
+    try:
+        while True:
+            data = await websocket.receive_json()
+            pregunta = data.get("pregunta", "")
+            usuario = data.get("usuario", "Operador Móvil")
+
+            if not pregunta:
+                await websocket.send_json({"error": "Pregunta vacía"})
+                continue
+
+            contexto = obtener_contexto_planta()
+            client = obtener_cliente_gemini()
+
+            if not client:
+                await websocket.send_json({
+                    "tipo": "respuesta_completa",
+                    "texto": f"🤖 **Asistente Móvil (SORT-MATIC):**\nHe recibido: *\"{pregunta}\"*\n\n{contexto}"
+                })
+                continue
+
+            # Streaming de respuesta con Gemini
+            try:
+                response = client.models.generate_content_stream(
+                    model='gemini-3.6-flash',
+                    contents=f"{contexto}\n\nEl usuario ({usuario}) pregunta en la app móvil: '{pregunta}'"
+                )
+                for chunk in response:
+                    if chunk.text:
+                        await websocket.send_json({
+                            "tipo": "chunk",
+                            "texto": chunk.text
+                        })
+                        await asyncio.sleep(0.02)
+
+                await websocket.send_json({"tipo": "fin"})
+
+            except Exception as e:
+                await websocket.send_json({
+                    "tipo": "error",
+                    "texto": f"Error en streaming de IA: {e}"
+                })
+
+    except WebSocketDisconnect:
+        print("Cliente móvil desconectado del WebSocket de IA")

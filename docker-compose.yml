@@ -71,6 +71,20 @@ services:
     ports:
       - "80:80"
 
+  servicio_ia:
+    build: ./servicio_ia
+    restart: unless-stopped
+    environment:
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      BACKEND_URL: http://backend:8000
+      VISION_API_KEY: ${VISION_API_KEY:-clave-vision-de-desarrollo-cambiar-en-produccion}
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "8001:8001"
+
 volumes:
   db_datos:
   media_datos:
+
