@@ -24,15 +24,15 @@ def obtener_contexto_planta() -> str:
     """
     try:
         # 1. Consultar KPIs de la línea (/api/kpis/)
-        r_kpis = requests.get(f"{BACKEND_URL}/linea/kpis/", headers=HEADERS, timeout=3.0)
+        r_kpis = requests.get(f"{BACKEND_URL}/api/kpis/", headers=HEADERS, timeout=3.0)
         kpis_data = r_kpis.json() if r_kpis.ok else {}
 
         # 2. Consultar estado actual de la faja (/api/estado-faja/)
-        r_estado = requests.get(f"{BACKEND_URL}/linea/estado-faja/", headers=HEADERS, timeout=3.0)
+        r_estado = requests.get(f"{BACKEND_URL}/api/estado-faja/", headers=HEADERS, timeout=3.0)
         estado_data = r_estado.json() if r_estado.ok else {}
 
         # 3. Consultar últimas mermas/defectos (/api/mermas/?page_size=5)
-        r_mermas = requests.get(f"{BACKEND_URL}/linea/mermas/?page_size=5", headers=HEADERS, timeout=3.0)
+        r_mermas = requests.get(f"{BACKEND_URL}/api/mermas/?page_size=5", headers=HEADERS, timeout=3.0)
         mermas_resp = r_mermas.json() if r_mermas.ok else {}
         mermas_data = (
             mermas_resp.get("results", [])
@@ -79,7 +79,7 @@ def ejecutar_comando_faja(accion: str) -> dict:
 
     try:
         r = requests.post(
-            f"{BACKEND_URL}/linea/comandos/",
+            f"{BACKEND_URL}/api/comandos/",
             json={"accion": accion},
             headers=HEADERS,
             timeout=3.0
