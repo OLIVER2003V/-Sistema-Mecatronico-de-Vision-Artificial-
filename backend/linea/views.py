@@ -383,18 +383,36 @@ class TelemetriaView(APIView):
 
 
 class KpiView(APIView):
-    """
-    GET /api/kpis/?lote=<id o correlativo>
-    Sin parametro: usa el lote activo, o si no hay ninguno, el ultimo creado.
-    Los contadores de este endpoint son los que mira el Operador en la HMI.
-    """
+    """GET /api/kpis/?lote=<id> -- tarjetas del resumen ejecutivo (cualquier rol o microservicio)."""
 
-    permission_classes = [EsPersonalDeLinea]
+    permission_classes = [EsDispositivoVisionOSupervisor]
 
     def get(self, request):
         lote = _resolver_lote(request.query_params.get("lote"))
         if lote is None:
-            return Response({"detalle": "no hay lotes registrados"}, status=status.HTTP_404_NOT_FOUND)
+            config = ConfiguracionLinea.actual()
+            return Response(
+                {
+                    "lote": None,
+                    "total_inspecciones": 0,
+                    "yield_rate": 0.0,
+                    "reject_rate": 0.0,
+                    "cadencia_bpm": 0.0,
+                    "cadencia_teorica_bpm": config.velocidad_teorica,
+                    "tasa_llenado_bajo": 0.0,
+                    "defecto_predominante": None,
+                    "defectos": {},
+                    "conteos": {
+                        "aceptadas": 0,
+                        "defectuosa": 0,
+                        "sin_etiqueta": 0,
+                        "sin_tapa": 0,
+                        "otro_defecto": 0,
+                        "llenado_bajo": 0,
+                        "rechazadas_total": 0,
+                    },
+                }
+            )
 
         inspecciones = Inspeccion.objects.filter(lote=lote)
         total = inspecciones.count()
