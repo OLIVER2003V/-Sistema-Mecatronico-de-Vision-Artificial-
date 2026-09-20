@@ -82,8 +82,37 @@ CLAVES_MODELO = (
 
 
 def clave_api(cfg_backend):
-    """La variable de entorno gana: permite no escribir la clave en config.json."""
-    return os.environ.get("SORTMATIC_API_KEY") or (cfg_backend or {}).get("api_key", "")
+    """
+    La variable de entorno SORTMATIC_API_KEY / VISION_API_KEY o del archivo .env gana:
+    permite no escribir la clave secreta en config.json para evitar subir credenciales a repositorios.
+    """
+    env_key = os.environ.get("SORTMATIC_API_KEY") or os.environ.get("VISION_API_KEY")
+    if env_key:
+        return env_key
+
+    # Si se pasa un diccionario con api_key explícita (como en config.json o en unit tests)
+    if isinstance(cfg_backend, dict) and "api_key" in cfg_backend:
+        key = cfg_backend["api_key"]
+        if key and key != "CONFIGURAR_EN_ENV":
+            return key
+
+    # Buscar SORTMATIC_API_KEY en archivo .env local si existe
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    for ruta_env in (os.path.join(base_dir, ".env"), os.path.join(base_dir, "..", ".env")):
+        if os.path.isfile(ruta_env):
+            try:
+                with open(ruta_env, "r", encoding="utf-8") as f:
+                    for linea in f:
+                        linea = linea.strip()
+                        if linea and not linea.startswith("#") and "=" in linea:
+                            k, v = linea.split("=", 1)
+                            k, v = k.strip(), v.strip().strip("'\"")
+                            if k == "SORTMATIC_API_KEY" and v:
+                                return v
+            except Exception:
+                pass
+
+    return (cfg_backend or {}).get("api_key", "")
 
 
 def payload_desde_resultado(cod, res):

@@ -172,4 +172,3 @@ Para reentrenar con mas datos, ver el comando de Ultralytics al final de
 Para desplegar el proyecto en AWS con PostgreSQL en contenedor Docker y almacenamiento en Amazon S3, consulta la guía completa:
 - [DEPLOY_AWS.md](DEPLOY_AWS.md)
 - Archivo de entorno de producción: [.env.production.example](.env.production.example)
-
