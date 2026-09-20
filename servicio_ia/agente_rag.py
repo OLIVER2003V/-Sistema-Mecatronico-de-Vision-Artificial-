@@ -13,7 +13,8 @@ VISION_API_KEY = os.environ.get("VISION_API_KEY", "clave-vision-de-desarrollo-ca
 
 HEADERS = {
     "X-API-Key": VISION_API_KEY,
-    "Content-Type": "application/json"
+    "Content-Type": "application/json",
+    "X-Forwarded-Proto": "https"
 }
 
 
