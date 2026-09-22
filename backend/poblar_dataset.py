@@ -197,6 +197,29 @@ def generar_dataset():
     print("[INFO] Creando registros de FotoDescarte para inspecciones rechazadas...")
     rechazadas = Inspeccion.objects.filter(resultado__in=[Inspeccion.DEFECTUOSA, Inspeccion.LLENADO_BAJO])
     
+    # Inicializar cliente de S3 para crear físicamente las carpetas y archivos en AWS si está disponible
+    s3_client = None
+    s3_copiados = set()
+    try:
+        import boto3
+        from django.conf import settings
+        if getattr(settings, "ALMACENAMIENTO", "local") == "s3" or os.environ.get("AWS_STORAGE_BUCKET_NAME"):
+            region = os.environ.get("AWS_S3_REGION_NAME", "us-east-1")
+            s3_client = boto3.client("s3", region_name=region)
+            print("[INFO] Conectado a AWS S3. Se crearan las carpetas por fecha en el bucket...")
+    except Exception as e:
+        print(f"[WARN] No se pudo inicializar boto3 para copiar objetos en S3: {e}")
+
+    from urllib.parse import urlparse
+    from pathlib import Path
+
+    def extraer_info_s3(url_str):
+        parsed = urlparse(url_str)
+        bucket = os.environ.get("AWS_STORAGE_BUCKET_NAME", "sortmatic-mermas-fotos")
+        key = parsed.path.lstrip("/")
+        filename = Path(key).name
+        return bucket, key, filename
+
     fotos_batch = []
     for insp in rechazadas:
         dt = insp.fecha_hora
@@ -208,14 +231,24 @@ def generar_dataset():
         else:
             plantilla = random.choice(URLS_SIN_ETIQUETA) if URLS_SIN_ETIQUETA else "sin_etiqueta_01.jpg"
 
-        # Estructurar dinámicamente con la carpeta por fecha descartes/YYYY/MM/DD/filename
-        from urllib.parse import urlparse
-        from pathlib import Path
-
         if plantilla.startswith("http://") or plantilla.startswith("https://"):
-            path_foto = plantilla
+            bucket, source_key, filename = extraer_info_s3(plantilla)
+            target_key = f"descartes/{dt.year:04d}/{dt.month:02d}/{dt.day:02d}/{filename}"
+
+            if s3_client and bucket:
+                if target_key not in s3_copiados:
+                    try:
+                        s3_client.copy_object(
+                            Bucket=bucket,
+                            CopySource={'Bucket': bucket, 'Key': source_key},
+                            Key=target_key
+                        )
+                        s3_copiados.add(target_key)
+                    except Exception as err:
+                        # Si falla la copia por permisos o clave origen, continua guardando la ruta relativa
+                        pass
+            path_foto = target_key
         else:
-            from pathlib import Path
             filename = Path(plantilla).name
             path_foto = f"descartes/{dt.year:04d}/{dt.month:02d}/{dt.day:02d}/{filename}"
 
