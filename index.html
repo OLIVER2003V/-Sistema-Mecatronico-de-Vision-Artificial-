@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SORT-MATIC · Manual de Usuario</title>
+  <link rel="stylesheet" href="assets/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- ========================================================
+       SIDEBAR NAVIGATION
+  ========================================================= -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <!-- ICONO FÁBRICA SVG -->
+        <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="logo-icon"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M17 18h1"/><path d="M12 18h1"/><path d="M7 18h1"/></svg>
+        <div>
+          <p class="logo-title">SORT-MATIC</p>
+          <p class="logo-sub">Manual de Usuario · v1.0</p>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav" id="nav">
+      <div class="nav-group">
+        <p class="nav-group-label">Primeros pasos</p>
+        <a href="#introduccion" class="nav-link active" data-section="introduccion">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          Introducción
+        </a>
+        <a href="#roles" class="nav-link" data-section="roles">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Roles de Usuario
+        </a>
+        <a href="#login" class="nav-link" data-section="login">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" x2="3" y1="12" y2="12"/></svg>
+          Inicio de Sesión
+        </a>
+      </div>
+
+      <div class="nav-group">
+        <p class="nav-group-label">Operación</p>
+        <a href="#scada" class="nav-link" data-section="scada">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          Módulo SCADA
+        </a>
+        <a href="#contadores" class="nav-link" data-section="contadores">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" x2="21" y1="6" y2="6"/><line x1="8" x2="21" y1="12" y2="12"/><line x1="8" x2="21" y1="18" y2="18"/><line x1="3" x2="3.01" y1="6" y2="6"/><line x1="3" x2="3.01" y1="12" y2="12"/><line x1="3" x2="3.01" y1="18" y2="18"/></svg>
+          Contadores en Tiempo Real
+        </a>
+      </div>
+
+      <div class="nav-group">
+        <p class="nav-group-label">Calidad</p>
+        <a href="#analiticos" class="nav-link" data-section="analiticos">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/></svg>
+          Analíticos y KPIs
+        </a>
+        <a href="#lotes" class="nav-link" data-section="lotes">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 9.4 7.55 4.24"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" x2="12" y1="22" y2="12"/></svg>
+          Gestión de Lotes
+        </a>
+        <a href="#mermas" class="nav-link" data-section="mermas">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+          Galería de Mermas
+        </a>
+        <a href="#exportar" class="nav-link" data-section="exportar">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+          Exportar Datos
+        </a>
+      </div>
+
+      <div class="nav-group">
+        <p class="nav-group-label">Configuración</p>
+        <a href="#parametros" class="nav-link" data-section="parametros">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="4" y1="21" y2="14"/><line x1="4" x2="4" y1="10" y2="3"/><line x1="12" x2="12" y1="21" y2="12"/><line x1="12" x2="12" y1="8" y2="3"/><line x1="20" x2="20" y1="21" y2="16"/><line x1="20" x2="20" y1="12" y2="3"/><line x1="1" x2="7" y1="14" y2="14"/><line x1="9" x2="15" y1="8" y2="8"/><line x1="17" x2="23" y1="16" y2="16"/></svg>
+          Parámetros de Inspección
+        </a>
+        <a href="#usuarios" class="nav-link" data-section="usuarios">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          Gestión de Usuarios
+        </a>
+        <a href="#auditoria" class="nav-link" data-section="auditoria">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          Bitácora de Auditoría
+        </a>
+      </div>
+
+      <div class="nav-group">
+        <p class="nav-group-label">Referencia</p>
+        <a href="#arquitectura" class="nav-link" data-section="arquitectura">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="2" y="3" rx="1"/><rect width="7" height="7" x="15" y="3" rx="1"/><rect width="7" height="7" x="15" y="14" rx="1"/><path d="M13 7h1a2 2 0 0 1 2 2v3"/><path d="M9 7h5.5"/></svg>
+          Arquitectura Técnica
+        </a>
+        <a href="#glosario" class="nav-link" data-section="glosario">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          Glosario
+        </a>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <p>EMBOL S.A. · Línea de Envasado</p>
+      <p>© 2025 · Todos los derechos reservados</p>
+    </div>
+  </aside>
+
+  <!-- Overlay para móvil -->
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- ========================================================
+       MAIN CONTENT
+  ========================================================= -->
+  <div class="layout">
+
+    <!-- TOP BAR MÓVIL -->
+    <header class="topbar">
+      <button class="menu-btn" id="menuBtn" aria-label="Abrir menú">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></svg>
+      </button>
+      <span class="topbar-title">SORT-MATIC · Manual</span>
+      <div class="topbar-badge">v1.0</div>
+    </header>
+
+    <main class="content" id="mainContent">
+
+      <!-- ====================================================
+           1. INTRODUCCIÓN
+      ===================================================== -->
+      <section id="introduccion" class="section active">
+        <div class="section-hero">
+          <div class="hero-badge">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+            Introducción al sistema
+          </div>
+          <h1 class="section-title">SORT-MATIC</h1>
+          <p class="section-lead">Sistema SCADA Web para el Control Mecatrónico de Botellas con Visión Artificial</p>
+        </div>
+
+        <div class="content-grid">
+          <div class="card">
+            <h2 class="card-title">¿Qué es SORT-MATIC?</h2>
+            <p>SORT-MATIC es un sistema de supervisión, control y adquisición de datos (SCADA) basado en tecnología web, diseñado para automatizar y monitorear en tiempo real una línea de clasificación de botellas mediante visión artificial.</p>
+            <p style="margin-top:1rem">El sistema inspecciona cada botella que pasa por la faja transportadora y la clasifica en tres categorías:</p>
+
+            <div class="classification-grid">
+              <div class="class-card class-ok">
+                <div class="class-icon">✓</div>
+                <div>
+                  <strong>Aprobada (A)</strong>
+                  <p>Botella íntegra: etiqueta, tapa y nivel de llenado correctos. Sale por el final de la línea.</p>
+                </div>
+              </div>
+              <div class="class-card class-defect">
+                <div class="class-icon">✕</div>
+                <div>
+                  <strong>Defectuosa (D)</strong>
+                  <p>Rota, sin tapa o sin etiqueta. La expulsa el <strong>Servo 1</strong> en la Estación 1.</p>
+                </div>
+              </div>
+              <div class="class-card class-low">
+                <div class="class-icon">◌</div>
+                <div>
+                  <strong>Llenado Bajo (L)</strong>
+                  <p>Aspecto correcto pero con menos del umbral de llenado configurado. La expulsa el <strong>Servo 2</strong> en la Estación 2.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PLACEHOLDER IMAGEN PANORÁMICA -->
+          <figure class="manual-figure">
+            <img src="assets/img/monitoreo-full.jpg" alt="Vista general del sistema SORT-MATIC en funcionamiento" loading="lazy" />
+            <figcaption>Vista general del sistema SORT-MATIC en funcionamiento</figcaption>
+          </figure>
+
+          <div class="card">
+            <h2 class="card-title">¿Para quién es este manual?</h2>
+            <p>Este manual está dirigido a los tres perfiles de usuario del sistema:</p>
+            <ul class="feature-list">
+              <li><span class="badge badge-admin">Administrador</span> Gestión de cuentas y auditoría.</li>
+              <li><span class="badge badge-supervisor">Supervisor</span> Analíticos, calidad y configuración de la IA.</li>
+              <li><span class="badge badge-operator">Operador</span> Monitoreo de la faja y lectura de contadores.</li>
+            </ul>
+          </div>
+
+          <div class="card card-highlight">
+            <h2 class="card-title">Flujo de clasificación</h2>
+            <div class="flow-diagram">
+              <div class="flow-step">
+                <div class="flow-icon flow-belt">🏭</div>
+                <div class="flow-label">Faja Transportadora</div>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-step">
+                <div class="flow-icon flow-sensor">📷</div>
+                <div class="flow-label">Sensor 1 + Cámara</div>
+                <div class="flow-sub">Foto → YOLOv8</div>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-step">
+                <div class="flow-icon flow-servo">⚡</div>
+                <div class="flow-label">Servo 1</div>
+                <div class="flow-sub">Expulsa Defectuosas</div>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-step">
+                <div class="flow-icon flow-sensor">🔍</div>
+                <div class="flow-label">Sensor 2</div>
+                <div class="flow-sub">Verifica Llenado</div>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-step">
+                <div class="flow-icon flow-servo">⚡</div>
+                <div class="flow-label">Servo 2</div>
+                <div class="flow-sub">Expulsa Nivel Bajo</div>
+              </div>
+              <div class="flow-arrow">→</div>
+              <div class="flow-step">
+                <div class="flow-icon flow-ok">✅</div>
+                <div class="flow-label">Aprobadas</div>
+                <div class="flow-sub">Pasan al final</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================
+           2. ROLES DE USUARIO
+      ===================================================== -->
+      <section id="roles" class="section">
+        <div class="section-header">
+          <h1 class="section-title">Roles de Usuario</h1>
+          <p class="section-lead">SORT-MATIC define tres roles jerárquicos. Cada rol tiene acceso a un conjunto específico de pantallas y funciones.</p>
+        </div>
+
+        <div class="roles-grid">
+          <!-- ADMINISTRADOR -->
+          <div class="role-card role-admin">
+            <div class="role-header">
+              <div class="role-avatar role-avatar-admin">A</div>
+              <div>
+                <h2 class="role-name">Administrador de Sistemas</h2>
+                <p class="role-tag">Acceso total al sistema</p>
+              </div>
+            </div>
+            <div class="role-body">
+              <p>El rol con mayores privilegios. Es superconjunto de los demás: puede acceder a todas las pantallas del sistema.</p>
+              <h3 class="perms-title">Pantallas disponibles</h3>
+              <ul class="perms-list">
+                <li class="perm-ok">Monitoreo de línea</li>
+                <li class="perm-ok">Analíticos y KPIs</li>
+                <li class="perm-ok">Gestión de Lotes</li>
+                <li class="perm-ok">Parámetros de inspección</li>
+                <li class="perm-ok">Galería de Mermas</li>
+                <li class="perm-ok">Gestión de Usuarios</li>
+                <li class="perm-ok">Bitácora de Auditoría</li>
+              </ul>
+              <div class="callout callout-info">
+                <strong>Nota:</strong> Un superusuario de Django siempre se trata como Administrador, incluso si su perfil indica otro rol.
+              </div>
+            </div>
+          </div>
+
+          <!-- SUPERVISOR -->
+          <div class="role-card role-supervisor">
+            <div class="role-header">
+              <div class="role-avatar role-avatar-supervisor">S</div>
+              <div>
+                <h2 class="role-name">Supervisor de Calidad</h2>
+                <p class="role-tag">Análisis y configuración</p>
+              </div>
+            </div>
+            <div class="role-body">
+              <p>Accede a los módulos de calidad y puede ajustar los parámetros del modelo de visión artificial, sin gestionar usuarios ni ver la bitácora completa.</p>
+              <h3 class="perms-title">Pantallas disponibles</h3>
+              <ul class="perms-list">
+                <li class="perm-ok">Monitoreo de línea</li>
+                <li class="perm-ok">Analíticos y KPIs</li>
+                <li class="perm-ok">Gestión de Lotes</li>
+                <li class="perm-ok">Parámetros de inspección</li>
+                <li class="perm-ok">Galería de Mermas</li>
+                <li class="perm-no">Gestión de Usuarios</li>
+                <li class="perm-no">Bitácora de Auditoría</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- OPERADOR -->
+          <div class="role-card role-operator">
+            <div class="role-header">
+              <div class="role-avatar role-avatar-operator">O</div>
+              <div>
+                <h2 class="role-name">Operador de Planta</h2>
+                <p class="role-tag">Operación diaria</p>
+              </div>
+            </div>
+            <div class="role-body">
+              <p>Tiene acceso únicamente al panel de operación. Su función es iniciar, detener y monitorear la faja durante el turno de producción.</p>
+              <h3 class="perms-title">Pantallas disponibles</h3>
+              <ul class="perms-list">
+                <li class="perm-ok">Monitoreo de línea</li>
+                <li class="perm-no">Analíticos y KPIs</li>
+                <li class="perm-no">Gestión de Lotes</li>
+                <li class="perm-no">Parámetros de inspección</li>
+                <li class="perm-no">Galería de Mermas</li>
+                <li class="perm-no">Gestión de Usuarios</li>
+                <li class="perm-no">Bitácora de Auditoría</li>
+              </ul>
+              <div class="callout callout-warning">
+                <strong>Importante:</strong> El operador solo puede ver los contadores y controlar la faja. No puede modificar ninguna configuración del sistema.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PLACEHOLDER TABLA DE PERMISOS -->
+        <figure class="manual-figure">
+            <img src="assets/img/roles-login.jpg" alt="Tabla de usuarios y roles del sistema" loading="lazy" />
+            <figcaption>Tabla de usuarios y roles del sistema</figcaption>
+          </figure>
+      </section>
+
+      <!-- ====================================================
+           3. INICIO DE SESIÓN
+      ===================================================== -->
+      <section id="login" class="section">
+        <div class="section-header">
+          <h1 class="section-title">Inicio de Sesión</h1>
+          <p class="section-lead">Cómo acceder al sistema SORT-MATIC desde cualquier navegador de la red industrial.</p>
+        </div>
+
+        <div class="content-grid">
+          <div class="card">
+            <h2 class="card-title">Acceso al sistema</h2>
+            <p>SORT-MATIC es una aplicación web. Para acceder, abra su navegador y diríjase a la dirección IP del servidor de planta que le proporcionó el administrador.</p>
+
+            <div class="step-list">
+              <div class="step">
+                <div class="step-num">1</div>
+                <div>
+                  <strong>Abra el navegador</strong>
+                  <p>Se recomienda Google Chrome o Mozilla Firefox. La interfaz no requiere instalación adicional.</p>
+                </div>
+              </div>
+              <div class="step">
+                <div class="step-num">2</div>
+                <div>
+                  <strong>Ingrese la dirección del servidor</strong>
+                  <p>Escriba en la barra de direcciones: <code class="inline-code">http://&lt;IP_DEL_SERVIDOR&gt;</code></p>
+                </div>
+              </div>
+              <div class="step">
+                <div class="step-num">3</div>
+                <div>
+                  <strong>Ingrese sus credenciales</strong>
+                  <p>En el formulario de inicio de sesión, escriba su <strong>nombre de usuario</strong> y <strong>contraseña</strong> asignados por el administrador.</p>
+                </div>
+              </div>
+              <div class="step">
+                <div class="step-num">4</div>
+                <div>
+                  <strong>El sistema carga su panel según su rol</strong>
+                  <p>Una vez autenticado, verá únicamente las secciones a las que su rol tiene acceso.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PLACEHOLDER PANTALLA DE LOGIN -->
+          <figure class="manual-figure">
+            <img src="assets/img/login-screen.jpg" alt="Pantalla de inicio de sesión de SORT-MATIC" loading="lazy" />
+            <figcaption>Pantalla de inicio de sesión de SORT-MATIC</figcaption>
+          </figure>
+
+          <div class="card">
+            <h2 class="card-title">Cambiar contraseña</h2>
+            <p>Puede cambiar su contraseña en cualquier momento desde el menú de usuario, ubicado en la esquina superior derecha de la pantalla:</p>
+            <ol class="ordered-list">
+              <li>Haga clic en su <strong>nombre de usuario</strong> en la cabecera.</li>
+              <li>Seleccione <strong>"Cambiar contraseña"</strong>.</li>
+              <li>Ingrese su contraseña actual y la nueva contraseña dos veces.</li>
+              <li>Haga clic en <strong>"Guardar"</strong>.</li>
+            </ol>
+            <div class="callout callout-warning">
+              Si olvidó su contraseña, contacte al <strong>Administrador de Sistemas</strong> para que se la restablezca desde el módulo de Gestión de Usuarios.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================
+           4. MÓDULO SCADA - OPERADOR
+      ===================================================== -->
+      <section id="scada" class="section">
+        <div class="section-header">
+          <div class="hero-badge">
+            <span class="badge badge-operator">Operador</span>
+          </div>
+          <h1 class="section-title">Módulo SCADA – Monitoreo de Línea</h1>
+          <p class="section-lead">Panel principal de operación. Desde aquí el operador controla la marcha y el paro de la faja transportadora y visualiza el estado en tiempo real.</p>
+        </div>
+
+        <div class="content-grid">
+          <!-- PLACEHOLDER DASHBOARD PRINCIPAL -->
+          <figure class="manual-figure">
+            <img src="assets/img/scada-dashboard.jpg" alt="Dashboard SCADA · Monitoreo de Línea" loading="lazy" />
+            <figcaption>Dashboard SCADA · Monitoreo de Línea</figcaption>
+          </figure>
+
+          <div class="card">
+            <h2 class="card-title">Panel de Control de la Faja</h2>
+            <p>El panel de control es el elemento central de la pantalla de Monitoreo. Contiene los tres botones principales de operación y el indicador de estado del Arduino.</p>
+
+            <div class="control-demo">
+              <div class="control-status running">
+                <div class="status-dot"></div>
+                FAJA EN MARCHA
+              </div>
+              <div class="controls-row">
+                <div class="btn-demo btn-start">▶ Marcha</div>
+                <div class="btn-demo btn-stop">■ Paro</div>
+                <div class="btn-demo btn-reset">↺ Reiniciar contadores</div>
+              </div>
+            </div>
+
+            <div class="step-list" style="margin-top: 1.5rem">
+              <div class="step">
+                <div class="step-num" style="background: #059669; color: white">▶</div>
+                <div>
+                  <strong>Botón MARCHA (verde)</strong>
+                  <p>Inicia la faja transportadora. El sistema mostrará una confirmación de seguridad: <em>"¿Arrancar la faja? Asegúrese de que no haya nadie cerca de los servos ni de la cinta."</em> Haga clic en <strong>Aceptar</strong> para confirmar. El comando llega al Arduino en menos de 1 segundo.</p>
+                </div>
+              </div>
+              <div class="step">
+                <div class="step-num" style="background: #dc2626; color: white">■</div>
+                <div>
+                  <strong>Botón PARO (rojo)</strong>
+                  <p>Detiene la faja inmediatamente. <strong>Este botón no pide confirmación</strong>: un paro de emergencia no puede depender de un diálogo. Úselo siempre que necesite detener la línea.</p>
+                </div>
+              </div>
+              <div class="step">
+                <div class="step-num" style="background: #374151; color: #d1d5db">↺</div>
+                <div>
+                  <strong>Botón REINICIAR CONTADORES</strong>
+                  <p>Pone a cero los contadores del Arduino (aprobadas, defectuosas, nivel bajo). Úselo al iniciar un nuevo turno o lote. El sistema pedirá confirmación antes de ejecutarlo.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PLACEHOLDER PANEL DE CONTROL -->
+          <figure class="manual-figure">
+            <img src="assets/img/scada-control-panel.jpg" alt="Panel de Control de la Faja (Marcha / Paro / Reiniciar)" loading="lazy" />
+            <figcaption>Panel de Control de la Faja (Marcha / Paro / Reiniciar)</figcaption>
+          </figure>
+
+          <div class="card card-highlight">
+            <h2 class="card-title">⚠️ Indicador de conexión con el Arduino</h2>
+            <p>En la esquina superior derecha del panel de control verá el <strong>semáforo de estado</strong>:</p>
+            <ul class="feature-list" style="margin-top: 1rem">
+              <li>
+                <span class="status-pill status-ok">● FAJA EN MARCHA</span>
+                Punto verde parpadeante — la faja está activa.
+              </li>
+              <li>
+                <span class="status-pill status-stopped">● FAJA DETENIDA</span>
+                Punto gris — la faja está parada pero el Arduino está conectado.
+              </li>
+              <li>
+                <span class="status-pill status-error">⚡ ARDUINO DESCONECTADO</span>
+                El módulo de visión no comunica con el Arduino. Los comandos quedan en cola y se entregan cuando se restablezca la conexión.
+              </li>
+            </ul>
+            <div class="callout callout-warning">
+              Si ve "ARDUINO DESCONECTADO", avise inmediatamente al supervisor o al personal técnico. Los botones de Marcha/Paro seguirán enviando comandos, pero no llegarán al hardware hasta restaurar la conexión.
+            </div>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">Vista en vivo de la cámara</h2>
+            <p>En el panel de Monitoreo encontrará también la vista en tiempo real de la cámara industrial ubicada sobre la faja. Esta vista muestra:</p>
+            <ul class="feature-list">
+              <li>La imagen de cada botella en el momento de ser inspeccionada.</li>
+              <li>Los cuadros de detección del modelo YOLOv8 (rectángulos de colores).</li>
+              <li>El veredicto instantáneo: <strong>A</strong> (Aprobada), <strong>D</strong> (Defectuosa) o <strong>L</strong> (Llenado bajo).</li>
+            </ul>
+          </div>
+
+          <!-- PLACEHOLDER CÁMARA LIVE -->
+          <figure class="manual-figure">
+            <img src="assets/img/camera-live.jpg" alt="Vista en tiempo real de la cámara industrial con detecciones del modelo" loading="lazy" />
+            <figcaption>Vista en tiempo real de la cámara industrial con detecciones del modelo</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- ====================================================
+           5. CONTADORES EN TIEMPO REAL
+      ===================================================== -->
+      <section id="contadores" class="section">
+        <div class="section-header">
+          <div class="hero-badge">
+            <span class="badge badge-operator">Operador</span>
+            <span class="badge badge-supervisor">Supervisor</span>
+          </div>
+          <h1 class="section-title">Contadores en Tiempo Real</h1>
+          <p class="section-lead">Los tres contadores principales son los indicadores que el operador monitorea desde la línea durante el turno de producción.</p>
+        </div>
+
+        <div class="content-grid">
+          <div class="card">
+            <h2 class="card-title">Los tres contadores del lote</h2>
+            <p>Los contadores muestran los acumulados del lote en curso y se actualizan en tiempo real vía WebSocket, sin necesidad de recargar la página.</p>
+
+            <div class="counters-demo">
+              <div class="counter-demo counter-ok">
+                <div class="counter-icon">✓</div>
+                <div class="counter-num">1,247</div>
+                <div class="counter-label">Aprobadas</div>
+                <div class="counter-pct">88%</div>
+                <div class="counter-bar"><div class="counter-bar-fill bar-ok" style="width:88%"></div></div>
+              </div>
+              <div class="counter-demo counter-defect">
+                <div class="counter-icon">✕</div>
+                <div class="counter-num">98</div>
+                <div class="counter-label">Defectuosas</div>
+                <div class="counter-pct">7%</div>
+                <div class="counter-bar"><div class="counter-bar-fill bar-defect" style="width:7%"></div></div>
+              </div>
+              <div class="counter-demo counter-low">
+                <div class="counter-icon">◌</div>
+                <div class="counter-num">71</div>
+                <div class="counter-label">Nivel Bajo</div>
+                <div class="counter-pct">5%</div>
+                <div class="counter-bar"><div class="counter-bar-fill bar-low" style="width:5%"></div></div>
+              </div>
+            </div>
+            <p style="margin-top: 1rem; color: var(--text-muted); font-size: 0.875rem">Cada tarjeta muestra el número absoluto de botellas y su porcentaje sobre el total inspeccionado en el lote.</p>
+          </div>
+
+          <!-- PLACEHOLDER CONTADORES -->
+          <figure class="manual-figure">
+            <img src="assets/img/contadores-linea.jpg" alt="Contadores del lote en tiempo real (Aprobadas · Defectuosas · Nivel Bajo)" loading="lazy" />
+            <figcaption>Contadores del lote en tiempo real (Aprobadas · Defectuosas · Nivel Bajo)</figcaption>
+          </figure>
+
+          <div class="card">
+            <h2 class="card-title">Desglose de defectos</h2>
+            <p>Debajo de los tres contadores principales, encontrará el desglose detallado de los tipos de defecto detectados:</p>
+            <div class="defect-breakdown">
+              <div class="defect-item">
+                <span class="defect-icon" style="color:#f97316">🚫</span>
+                <span><strong>Sin Tapa</strong> — Botella sin tapa de rosca o con tapa mal puesta.</span>
+              </div>
+              <div class="defect-item">
+                <span class="defect-icon" style="color:#f59e0b">🏷️</span>
+                <span><strong>Sin Etiqueta</strong> — Botella sin etiqueta o con etiqueta desprendida.</span>
+              </div>
+              <div class="defect-item">
+                <span class="defect-icon" style="color:#94a3b8">✕</span>
+                <span><strong>Otro Defecto</strong> — Cualquier otro problema detectado por el modelo.</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">Feed de eventos recientes</h2>
+            <p>El panel también muestra un registro en tiempo real de los últimos eventos de la línea (botellas inspeccionadas, comandos enviados, alertas). Este feed se actualiza automáticamente.</p>
+
+            <!-- PLACEHOLDER FEED EVENTOS -->
+            <figure class="manual-figure">
+            <img src="assets/img/eventos-feed.jpg" alt="Feed de eventos recientes de la línea" loading="lazy" />
+            <figcaption>Feed de eventos recientes de la línea</figcaption>
+          </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================
+           6. ANALÍTICOS Y KPIs
+      ===================================================== -->
+      <section id="analiticos" class="section">
+        <div class="section-header">
+          <div class="hero-badge">
+            <span class="badge badge-supervisor">Supervisor</span>
+            <span class="badge badge-admin">Administrador</span>
+          </div>
+          <h1 class="section-title">Analíticos y KPIs</h1>
+          <p class="section-lead">Panel de indicadores de rendimiento para el Supervisor de Calidad. Muestra métricas del lote activo, tendencias de producción y análisis de defectos.</p>
+        </div>
+
+        <div class="content-grid">
+          <!-- PLACEHOLDER PANTALLA ANALÍTICOS -->
+          <figure class="manual-figure">
+            <img src="assets/img/analiticos-dashboard.jpg" alt="Dashboard de Analíticos y KPIs · Vista del Supervisor" loading="lazy" />
+            <figcaption>Dashboard de Analíticos y KPIs · Vista del Supervisor</figcaption>
+          </figure>
+
+          <div class="card">
+            <h2 class="card-title">Tarjetas de KPI</h2>
+            <p>En la parte superior del panel de Analíticos encontrará cinco indicadores clave del lote en curso:</p>
+            <div class="kpi-grid-demo">
+              <div class="kpi-item">
+                <div class="kpi-icon" style="color:#34d399">✓</div>
+                <div class="kpi-value kpi-green">92%</div>
+                <div class="kpi-label">Rendimiento</div>
+                <div class="kpi-sub">botellas aprobadas</div>
+              </div>
+              <div class="kpi-item">
+                <div class="kpi-icon" style="color:#f87171">✕</div>
+                <div class="kpi-value kpi-green">8%</div>
+                <div class="kpi-label">Merma global</div>
+                <div class="kpi-sub">descartadas</div>
+              </div>
+              <div class="kpi-item">
+                <div class="kpi-icon" style="color:#22d3ee">⚡</div>
+                <div class="kpi-value" style="color:#fff">45</div>
+                <div class="kpi-label">Cadencia real</div>
+                <div class="kpi-sub">BPM</div>
+              </div>
+              <div class="kpi-item">
+                <div class="kpi-icon" style="color:#fbbf24">◌</div>
+                <div class="kpi-value kpi-green">3%</div>
+                <div class="kpi-label">Llenado bajo</div>
+                <div class="kpi-sub">botellas</div>
+              </div>
+              <div class="kpi-item">
+                <div class="kpi-icon" style="color:#fbbf24">⚠</div>
+                <div class="kpi-value" style="color:#fff; font-size:1rem">Sin Tapa</div>
+                <div class="kpi-label">Defecto principal</div>
+                <div class="kpi-sub">45% de defectuosas</div>
+              </div>
+            </div>
+            <div class="callout callout-info" style="margin-top: 1rem">
+              <strong>Colores de alerta:</strong> Los KPIs de Rendimiento y Merma cambian de color según umbrales predefinidos: <span style="color:#34d399">verde ≥ 90%</span>, <span style="color:#fbbf24">amarillo ≥ 75%</span>, <span style="color:#f87171">rojo &lt; 75%</span>.
+            </div>
+          </div>
+
+          <!-- PLACEHOLDER KPI GRID -->
+          <figure class="manual-figure">
+            <img src="assets/img/kpi-grid.jpg" alt="Tarjetas de KPI del lote en curso" loading="lazy" />
+            <figcaption>Tarjetas de KPI del lote en curso</figcaption>
+          </figure>
+
+          <div class="card">
+            <h2 class="card-title">Gráfico de Pareto de Defectos</h2>
+            <p>El gráfico de Pareto muestra los tipos de defecto ordenados de mayor a menor frecuencia. Permite al Supervisor identificar rápidamente cuál es el problema predominante en el lote.</p>
+            <p style="margin-top: 0.75rem">Interpretación:</p>
+            <ul class="feature-list">
+              <li>La barra más alta indica el defecto más frecuente.</li>
+              <li>El porcentaje sobre cada barra indica su proporción sobre el total de defectos.</li>
+              <li>Use este gráfico para priorizar las acciones correctivas.</li>
+            </ul>
+          </div>
+
+          <!-- PLACEHOLDER PARETO -->
+          <figure class="manual-figure">
+            <img src="assets/img/pareto-defectos.jpg" alt="Gráfico de Pareto de Defectos" loading="lazy" />
+            <figcaption>Gráfico de Pareto de Defectos</figcaption>
+          </figure>
+
+          <div class="card">
+            <h2 class="card-title">Gráfico de Tendencia (TrendChart)</h2>
+            <p>Muestra la evolución de la producción a lo largo del tiempo: cadencia, tasa de aprobadas y tasa de defectos. Permite detectar tendencias de degradación o mejora.</p>
+            <ul class="feature-list">
+              <li>Eje X: tiempo (intervalos del lote).</li>
+              <li>Línea verde: botellas aprobadas por intervalo.</li>
+              <li>Línea roja: botellas defectuosas por intervalo.</li>
+              <li>Línea ámbar: botellas con nivel bajo por intervalo.</li>
+            </ul>
+          </div>
+
+          <!-- PLACEHOLDER TREND CHART -->
+          <figure class="manual-figure">
+            <img src="assets/img/trend-chart.jpg" alt="Gráfico de Tendencia de Producción" loading="lazy" />
+            <figcaption>Gráfico de Tendencia de Producción</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- ====================================================
+           7. GESTIÓN DE LOTES
+      ===================================================== -->
+      <section id="lotes" class="section">
+        <div class="section-header">
+          <div class="hero-badge">
+            <span class="badge badge-supervisor">Supervisor</span>
+          </div>
+          <h1 class="section-title">Gestión de Lotes</h1>
+          <p class="section-lead">Administre los lotes de producción: configure el tamaño por defecto, ajuste el lote activo y consulte el historial completo.</p>
+        </div>
+
+        <div class="content-grid">
+          <div class="card">
+            <h2 class="card-title">¿Qué es un lote?</h2>
+            <p>Un lote es un grupo de botellas inspeccionadas bajo las mismas condiciones de producción. El sistema crea lotes automáticamente según la capacidad configurada. Cuando un lote se completa o se cierra manualmente, el siguiente se abre de inmediato.</p>
+            <div class="callout callout-info">
+              El primer lote se abre automáticamente cuando la línea inspecciona la primera botella del turno. No requiere intervención del operador.
+            </div>
+          </div>
+
+          <!-- PLACEHOLDER LOTES -->
+          <figure class="manual-figure">
+            <img src="assets/img/lotes-screen.jpg" alt="Pantalla de Gestión de Lotes con barra de progreso del lote activo" loading="lazy" />
+            <figcaption>Pantalla de Gestión de Lotes con barra de progreso del lote activo</figcaption>
+          </figure>
+
+          <div class="card">
+            <h2 class="card-title">Configurar tamaño de lote por defecto</h2>
+            <p>El tamaño por defecto define cuántas botellas tendrán los próximos lotes que se abran. <strong>No afecta al lote que está en curso.</strong></p>
+            <div class="step-list">
+              <div class="step">
+                <div class="step-num">1</div>
+                <div>Diríjase a la sección <strong>Lotes de Botellas</strong> en el menú lateral.</div>
+              </div>
+              <div class="step">
+                <div class="step-num">2</div>
+                <div>En la tarjeta <strong>"Tamaño de lote por defecto"</strong>, ingrese el número de botellas en el campo numérico.</div>
+              </div>
+              <div class="step">
+                <div class="step-num">3</div>
+                <div>Haga clic en <strong>"Guardar"</strong>. El próximo lote que se abra usará este tamaño.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">Ajustar el lote activo</h2>
+            <p>Si necesita modificar la capacidad del lote que está en curso (por ejemplo, debido a un cambio de turno), puede hacerlo desde la tarjeta <strong>"Lote en Curso"</strong>:</p>
+            <ol class="ordered-list">
+              <li>Modifique el número en el campo de capacidad.</li>
+              <li>Haga clic en <strong>"Cambiar capacidad"</strong>.</li>
+            </ol>
+            <div class="callout callout-warning">
+              <strong>Atención:</strong> Si ingresa una capacidad igual o menor al número de botellas ya inspeccionadas, el lote se cerrará inmediatamente y se abrirá uno nuevo.
+            </div>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">Cerrar un lote manualmente</h2>
+            <p>Para cerrar el lote activo antes de que alcance su capacidad máxima:</p>
+            <ol class="ordered-list">
+              <li>Haga clic en el botón <strong>"Cerrar lote ahora"</strong>.</li>
+              <li>Confirme la acción en el diálogo que aparece, que mostrará el correlativo y el número de botellas producidas.</li>
+              <li>El sistema cierra el lote y abre inmediatamente el siguiente.</li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================
+           8. GALERÍA DE MERMAS
+      ===================================================== -->
+      <section id="mermas" class="section">
+        <div class="section-header">
+          <div class="hero-badge">
+            <span class="badge badge-supervisor">Supervisor</span>
+            <span class="badge badge-admin">Administrador</span>
+          </div>
+          <h1 class="section-title">Galería de Mermas</h1>
+          <p class="section-lead">Registro visual de todas las botellas descartadas. Cada vez que la línea rechaza una botella, el módulo de visión guarda una captura fotográfica con los metadatos de la inspección.</p>
+        </div>
+
+        <div class="content-grid">
+          <!-- PLACEHOLDER GALERÍA -->
+          <figure class="manual-figure">
+            <img src="assets/img/mermas-gallery.jpg" alt="Galería fotográfica de Mermas en formato cuadrícula" loading="lazy" />
+            <figcaption>Galería fotográfica de Mermas en formato cuadrícula</figcaption>
+          </figure>
+
+          <div class="card">
+            <h2 class="card-title">Navegar por la galería</h2>
+            <p>La galería muestra las capturas en formato de cuadrícula. Cada ficha fotográfica incluye:</p>
+            <ul class="feature-list">
+              <li><strong>Imagen</strong> de la botella en el momento del rechazo.</li>
+              <li><strong>Badge de motivo:</strong> <span class="badge-inline badge-defect">Defecto físico</span> o <span class="badge-inline badge-low">Nivel bajo</span>.</li>
+              <li><strong>Fecha y hora</strong> del descarte.</li>
+              <li><strong>Correlativo de lote</strong> al que pertenece.</li>
+            </ul>
+            <p style="margin-top: 0.75rem">Haga clic en cualquier ficha para abrir el <strong>modal de detalle</strong>.</p>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">Modal de detalle de merma</h2>
+            <p>Al hacer clic en una ficha se abre un panel ampliado con la información completa:</p>
+            <ul class="feature-list">
+              <li>Imagen a tamaño completo.</li>
+              <li>Fecha y hora exacta del descarte.</li>
+              <li>Número de lote correlativo.</li>
+              <li>Motivo del rechazo y tipo de defecto.</li>
+              <li>Estación de descarte (Servo 1 o Servo 2).</li>
+              <li>Nivel de llenado medido (% de llenado detectado).</li>
+              <li>Certeza del modelo de IA (confidence %).</li>
+            </ul>
+            <div class="callout callout-info">
+              <strong>Navegación con teclado:</strong> Use las teclas <kbd>←</kbd> <kbd>→</kbd> para pasar entre capturas sin cerrar el modal. Presione <kbd>Esc</kbd> para cerrar.
+            </div>
+          </div>
+
+          <!-- PLACEHOLDER MODAL MERMA -->
+          <figure class="manual-figure">
+            <img src="assets/img/merma-modal-detalle.jpg" alt="Modal de detalle de merma con imagen ampliada y metadatos de inspección" loading="lazy" />
+            <figcaption>Modal de detalle de merma con imagen ampliada y metadatos de inspección</figcaption>
+          </figure>
+
+          <div class="card card-highlight">
+            <h2 class="card-title">Filtros de búsqueda</h2>
+            <p>Utilice los filtros en la parte superior de la galería para acotar los resultados:</p>
+            <div class="filter-grid">
+              <div class="filter-item">
+                <strong>Desde / Hasta</strong>
+                <p>Rango de fechas del descarte.</p>
+              </div>
+              <div class="filter-item">
+                <strong>Desde la hora / Hasta la hora</strong>
+                <p>Franja horaria dentro del día.</p>
+              </div>
+              <div class="filter-item">
+                <strong>Motivo del descarte</strong>
+                <p>Defecto físico o Nivel bajo.</p>
+              </div>
+              <div class="filter-item">
+                <strong>Tipo de defecto</strong>
+                <p>Sin etiqueta / Sin tapa / Otro.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- PLACEHOLDER FILTROS MERMAS -->
+          <figure class="manual-figure">
+            <img src="assets/img/mermas-filtros.jpg" alt="Panel de filtros de la Galería de Mermas" loading="lazy" />
+            <figcaption>Panel de filtros de la Galería de Mermas</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <!-- ====================================================
+           9. EXPORTAR DATOS
+      ===================================================== -->
+      <section id="exportar" class="section">
+        <div class="section-header">
+          <div class="hero-badge">
+            <span class="badge badge-supervisor">Supervisor</span>
+            <span class="badge badge-admin">Administrador</span>
+          </div>
+          <h1 class="section-title">Exportar Datos</h1>
+          <p class="section-lead">Descargue los registros de lotes y mermas en formato PDF o CSV para reportes, auditorías o análisis externo.</p>
+        </div>
+
+        <div class="content-grid">
+          <div class="card">
+            <h2 class="card-title">Exportar historial de lotes (CSV)</h2>
+            <div class="step-list">
+              <div class="step">
+                <div class="step-num">1</div>
+                <div>Diríjase a la sección <strong>Lotes de Botellas</strong>.</div>
+              </div>
+              <div class="step">
+                <div class="step-num">2</div>
+                <div>En la tabla de lotes, haga clic en el botón <strong>"Exportar CSV"</strong> ubicado en la cabecera de la tabla.</div>
+              </div>
+              <div class="step">
+                <div class="step-num">3</div>
+                <div>El archivo <code class="inline-code">lotes_YYYY-MM-DD.csv</code> se descargará automáticamente.</div>
+              </div>
+            </div>
+            <div class="callout callout-info">
+              El CSV incluye: correlativo, fecha de apertura/cierre, capacidad, total inspeccionadas, aprobadas, defectuosas, nivel bajo y tasa de rendimiento.
+            </div>
+          </div>
+
+          <!-- PLACEHOLDER EXPORTAR -->
+          <figure class="manual-figure">
+            <img src="assets/img/exportar-lotes.jpg" alt="Tabla de lotes con opción de exportar datos" loading="lazy" />
+            <figcaption>Tabla de lotes con opción de exportar datos</figcaption>
+          </figure>
+
+          <div class="card">
+            <h2 class="card-title">Exportar reporte de mermas (PDF)</h2>
+            <div class="step-list">
+              <div class="step">
+                <div class="step-num">1</div>
+                <div>Diríjase a la sección <strong>Galería de Mermas</strong>.</div>
+              </div>
+              <div class="step">
+                <div class="step-num">2</div>
+                <div>Aplique los filtros necesarios para acotar el rango de fechas o tipo de defecto.</div>
+              </div>
+              <div class="step">
+                <div class="step-num">3</div>
+                <div>Haga clic en el botón <strong>"Exportar PDF"</strong>. El reporte incluirá las capturas fotográficas y los metadatos de cada merma.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================
+           10. PARÁMETROS DE INSPECCIÓN
+      ===================================================== -->
+      <section id="parametros" class="section">
+        <div class="section-header">
+          <div class="hero-badge">
+            <span class="badge badge-supervisor">Supervisor</span>
+          </div>
+          <h1 class="section-title">Parámetros de Inspección</h1>
+          <p class="section-lead">Configure los umbrales de calidad del modelo de IA y la calibración de la línea. Los cambios se aplican en segundos sin detener la inspección.</p>
+        </div>
+
+        <div class="content-grid">
+          <!-- PLACEHOLDER PARAMETROS PANTALLA -->
+          <figure class="manual-figure">
+            <img src="assets/img/parametros-screen.jpg" alt="Pantalla de Parámetros de Inspección · Vista completa" loading="lazy" />
+            <figcaption>Pantalla de Parámetros de Inspección · Vista completa</figcaption>
+          </figure>
+
+          <div class="card">
+            <h2 class="card-title">Grupo 1: Calidad del Producto</h2>
+            <div class="param-item">
+              <div class="param-header">
+                <span class="param-name">Nivel Mínimo de Llenado</span>
+                <span class="param-value">60%</span>
+              </div>
+              <div class="param-bar">
+                <div class="param-bar-fill" style="width:60%"></div>
+              </div>
+              <div class="param-hints">
+                <span>← acepta botellas más vacías</span>
+                <span>exige botellas más llenas →</span>
+              </div>
+              <p class="param-desc">Define el porcentaje mínimo de llenado que debe tener una botella para ser aprobada. Una botella con nivel medido por debajo de este umbral será descartada como <strong>Llenado Bajo (L)</strong> en la Estación 2.</p>
+              <div class="callout callout-warning">
+                <strong>Ejemplo:</strong> Si ajusta a 70%, las botellas con menos del 70% de líquido serán rechazadas. Si baja a 50%, se aceptarán botellas con menos líquido.
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">Grupo 2: Certeza del Modelo de IA (Confidence Threshold)</h2>
+            <p class="card-intro">Estos deslizadores controlan qué tan seguro debe estar el modelo YOLOv8 antes de tomar una decisión. <strong>Cada parámetro funciona de forma independiente.</strong></p>
+
+            <div class="param-item">
+              <div class="param-header">
+                <span class="param-name">Certeza mínima · Etiqueta</span>
+                <span class="param-value">70%</span>
+              </div>
+              <div class="param-bar"><div class="param-bar-fill" style="width:70%"></div></div>
+              <div class="param-hints"><span>← pasan más dudosas</span><span>más rechazos por etiqueta →</span></div>
+              <p class="param-desc">Si el modelo detecta una etiqueta con una confianza menor a este valor, la botella se marca como defectuosa.</p>
+            </div>
+
+            <div class="param-item" style="margin-top: 1.5rem">
+              <div class="param-header">
+                <span class="param-name">Certeza mínima · Tapa</span>
+                <span class="param-value">65%</span>
+              </div>
+              <div class="param-bar"><div class="param-bar-fill" style="width:65%"></div></div>
+              <div class="param-hints"><span>← pasan más dudosas</span><span>más rechazos por tapa →</span></div>
+              <p class="param-desc">Si el modelo detecta una tapa con confianza menor a este valor, la botella se rechaza como defectuosa.</p>
+            </div>
+
+            <div class="param-item" style="margin-top: 1.5rem">
+              <div class="param-header">
+                <span class="param-name">Certeza mínima · Defecto físico</span>
+                <span class="param-value">75%</span>
+              </div>
+              <div class="param-bar"><div class="param-bar-fill" style="width:75%"></div></div>
+              <div class="param-hints"><span>← marca defectos con menos evidencia</span><span>solo defectos evidentes →</span></div>
+              <p class="param-desc">Confianza mínima para que el modelo clasifique una botella como rota o con defecto físico visible.</p>
+            </div>
+
+            <div class="param-item" style="margin-top: 1.5rem">
+              <div class="param-header">
+                <span class="param-name">Sensibilidad de Detección</span>
+                <span class="param-value">50%</span>
+              </div>
+              <div class="param-bar"><div class="param-bar-fill" style="width:50%"></div></div>
+              <div class="param-hints"><span>← ve más objetos, con más ruido</span><span>ve solo lo muy claro →</span></div>
+              <p class="param-desc">Umbral global del detector (conf de YOLOv8). Valores bajos detectan más objetos pero con más falsos positivos; valores altos son más estrictos.</p>
+            </div>
+          </div>
+
+          <!-- PLACEHOLDER DESLIZADORES -->
+          <figure class="manual-figure">
+            <img src="assets/img/parametros-sliders.jpg" alt="Deslizadores de umbrales de confianza del modelo de IA" loading="lazy" />
+            <figcaption>Deslizadores de umbrales de confianza del modelo de IA</figcaption>
+          </figure>
+
+          <div class="card">
+            <h2 class="card-title">Grupo 3: Calibración y Rendimiento</h2>
+
+            <div class="param-item">
+              <div class="param-header">
+                <span class="param-name">Altura del cuello de la botella</span>
+                <span class="param-value">25%</span>
+              </div>
+              <div class="param-bar"><div class="param-bar-fill" style="width:25%"></div></div>
+              <div class="param-hints"><span>← cuello corto</span><span>cuello largo →</span></div>
+              <p class="param-desc">Fracción de la altura de la botella que corresponde al cuello. Afecta directamente el cálculo del nivel de llenado por geometría. <strong>Solo modificar con la supervisión del técnico de visión.</strong></p>
+            </div>
+
+            <div class="param-item" style="margin-top:1.5rem">
+              <div class="param-header">
+                <span class="param-name">Cadencia teórica de la faja</span>
+                <span class="param-value">60 BPM</span>
+              </div>
+              <p class="param-desc">Velocidad teórica máxima de la línea en botellas por minuto. Se usa para calcular el porcentaje de aprovechamiento de la cadencia real.</p>
+            </div>
+
+            <div class="param-item" style="margin-top:1.5rem">
+              <div class="param-header">
+                <span class="param-name">Resolución de análisis</span>
+                <span class="param-value">640 px</span>
+              </div>
+              <p class="param-desc">Tamaño de imagen que se envía al modelo YOLOv8 para inferencia. Mayor resolución = más detalle pero mayor tiempo de procesamiento. Valores: 320, 416, 512, 640, 768, 960, 1280 px.</p>
+            </div>
+
+            <div class="param-item" style="margin-top:1.5rem">
+              <div class="param-header">
+                <span class="param-name">Procesador del modelo</span>
+                <span class="param-value">CPU</span>
+              </div>
+              <p class="param-desc">Define si el modelo corre en CPU o en GPU (CUDA). Si el servidor tiene tarjeta gráfica compatible, seleccione <strong>GPU (CUDA 0)</strong> para mayor velocidad.</p>
+            </div>
+          </div>
+
+          <div class="card card-highlight">
+            <h2 class="card-title">Aplicar los cambios</h2>
+            <p>Todos los cambios en los deslizadores son <strong>borradores</strong> hasta que haga clic en <strong>"Aplicar a la línea"</strong>. El sistema muestra cuántos parámetros tienen cambios pendientes.</p>
+            <ul class="feature-list">
+              <li>Los cambios se aplican <strong>sin detener la inspección</strong> (en caliente).</li>
+              <li>Un badge amarillo <span style="background:#451a03;color:#fbbf24;padding:1px 6px;border-radius:99px;font-size:0.75rem">sin guardar</span> aparece junto al nombre de cada parámetro modificado.</li>
+              <li>Use <strong>"Descartar"</strong> para revertir todos los cambios al último valor guardado.</li>
+              <li>La barra inferior fija siempre muestra la versión actual y la fecha del último guardado.</li>
+            </ul>
+
+            <!-- PLACEHOLDER BARRA DE GUARDADO -->
+            <figure class="manual-figure">
+            <img src="assets/img/parametros-save-bar.jpg" alt="Barra fija "Aplicar a la línea" con cambios pendientes" loading="lazy" />
+            <figcaption>Barra fija "Aplicar a la línea" con cambios pendientes</figcaption>
+          </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================
+           11. GESTIÓN DE USUARIOS
+      ===================================================== -->
+      <section id="usuarios" class="section">
+        <div class="section-header">
+          <div class="hero-badge">
+            <span class="badge badge-admin">Administrador</span>
+          </div>
+          <h1 class="section-title">Gestión de Usuarios</h1>
+          <p class="section-lead">El Administrador puede crear, editar y eliminar las cuentas de los operadores y supervisores del sistema.</p>
+        </div>
+
+        <div class="content-grid">
+          <!-- PLACEHOLDER USUARIOS -->
+          <figure class="manual-figure">
+            <img src="assets/img/usuarios-screen.jpg" alt="Pantalla de Gestión de Usuarios" loading="lazy" />
+            <figcaption>Pantalla de Gestión de Usuarios</figcaption>
+          </figure>
+
+          <div class="card">
+            <h2 class="card-title">Crear un nuevo usuario</h2>
+            <div class="step-list">
+              <div class="step"><div class="step-num">1</div><div>Diríjase a <strong>Administración → Usuarios</strong> en el menú.</div></div>
+              <div class="step"><div class="step-num">2</div><div>Haga clic en el botón <strong>"Nuevo usuario"</strong>.</div></div>
+              <div class="step"><div class="step-num">3</div><div>Complete el formulario: nombre, apellido, nombre de usuario, contraseña y <strong>rol</strong> (Administrador, Supervisor u Operador).</div></div>
+              <div class="step"><div class="step-num">4</div><div>Haga clic en <strong>"Crear"</strong>. La acción queda registrada en la bitácora.</div></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">Editar o eliminar un usuario</h2>
+            <p>En la tabla de usuarios, haga clic en el icono de edición (lápiz) junto al usuario que desea modificar. Puede cambiar su nombre, rol o contraseña.</p>
+            <div class="callout callout-warning">
+              <strong>Eliminar un usuario</strong> es una acción irreversible. El nombre del usuario se conserva en la bitácora de auditoría para mantener la trazabilidad histórica.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================
+           12. BITÁCORA DE AUDITORÍA
+      ===================================================== -->
+      <section id="auditoria" class="section">
+        <div class="section-header">
+          <div class="hero-badge">
+            <span class="badge badge-admin">Administrador</span>
+          </div>
+          <h1 class="section-title">Bitácora de Auditoría</h1>
+          <p class="section-lead">Registro inmutable de todas las acciones sensibles del sistema: quién hizo qué, cuándo y desde qué dirección IP.</p>
+        </div>
+
+        <div class="content-grid">
+          <!-- PLACEHOLDER AUDITORÍA -->
+          <figure class="manual-figure">
+            <img src="assets/img/auditoria-screen.jpg" alt="Bitácora de Auditoría · Registro de acciones del sistema" loading="lazy" />
+            <figcaption>Bitácora de Auditoría · Registro de acciones del sistema</figcaption>
+          </figure>
+
+          <div class="card">
+            <h2 class="card-title">Eventos registrados</h2>
+            <p>La bitácora registra automáticamente las siguientes acciones:</p>
+            <div class="audit-events">
+              <div class="audit-event audit-neutral">Inicio de sesión</div>
+              <div class="audit-event audit-success">Usuario creado</div>
+              <div class="audit-event audit-info">Usuario actualizado</div>
+              <div class="audit-event audit-danger">Usuario eliminado</div>
+              <div class="audit-event audit-warning">Configuración actualizada</div>
+              <div class="audit-event audit-violet">Comando a la faja</div>
+              <div class="audit-event audit-info">Lote actualizado</div>
+              <div class="audit-event audit-warning">Lote cerrado</div>
+            </div>
+            <div class="callout callout-info" style="margin-top: 1rem">
+              La bitácora es de <strong>solo lectura</strong>: ningún usuario puede editar ni borrar los registros. Puede filtrar por tipo de acción usando el selector en la parte superior.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================
+           13. ARQUITECTURA TÉCNICA
+      ===================================================== -->
+      <section id="arquitectura" class="section">
+        <div class="section-header">
+          <h1 class="section-title">Arquitectura Técnica</h1>
+          <p class="section-lead">Descripción de los componentes del sistema y cómo se comunican entre sí.</p>
+        </div>
+
+        <div class="content-grid">
+          <div class="card">
+            <h2 class="card-title">Componentes del sistema</h2>
+            <div class="arch-grid">
+              <div class="arch-component arch-frontend">
+                <div class="arch-icon">⚛️</div>
+                <div>
+                  <strong>Frontend (React + Vite)</strong>
+                  <p>Interfaz web accesible desde cualquier navegador de la red. Tailwind CSS para estilos dark mode. Comunicación en tiempo real vía WebSocket.</p>
+                </div>
+              </div>
+              <div class="arch-arrow-v">↓</div>
+              <div class="arch-component arch-backend">
+                <div class="arch-icon">🐍</div>
+                <div>
+                  <strong>Backend (Django + Django Channels)</strong>
+                  <p>API REST para CRUD de datos. WebSockets para telemetría en tiempo real. PostgreSQL como base de datos principal.</p>
+                </div>
+              </div>
+              <div class="arch-arrow-v">↓</div>
+              <div class="arch-component arch-ia">
+                <div class="arch-icon">🤖</div>
+                <div>
+                  <strong>Servicio de IA (Python + YOLOv8)</strong>
+                  <p>Captura imágenes con la cámara, ejecuta inferencia con el modelo <code>best.pt</code> de Ultralytics y envía el veredicto (A/D/L) al Arduino por USB.</p>
+                </div>
+              </div>
+              <div class="arch-arrow-v">↓</div>
+              <div class="arch-component arch-arduino">
+                <div class="arch-icon">🔌</div>
+                <div>
+                  <strong>Arduino UNO (Firmware C++)</strong>
+                  <p>Controla la faja, los dos servos de expulsión y el LCD. Recibe comandos START/STOP/RESET desde el backend y reporta el estado de la línea.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2 class="card-title">Flujo de datos en tiempo real</h2>
+            <div class="callout callout-info">
+              <strong>WebSocket:</strong> La conexión WebSocket entre el frontend y Django Channels garantiza que los contadores, el estado de la faja y los KPIs se actualicen en la pantalla en menos de 1 segundo, sin recargar la página.
+            </div>
+            <div class="tech-stack">
+              <div class="tech-item">
+                <span class="tech-label">Protocolo HW</span>
+                <span class="tech-value">USB Serial (9600 baud) — 1 byte por comando</span>
+              </div>
+              <div class="tech-item">
+                <span class="tech-label">Modelo de IA</span>
+                <span class="tech-value">YOLOv8 (Ultralytics) · best.pt</span>
+              </div>
+              <div class="tech-item">
+                <span class="tech-label">Tiempo real</span>
+                <span class="tech-value">Django Channels + WebSocket</span>
+              </div>
+              <div class="tech-item">
+                <span class="tech-label">Base de datos</span>
+                <span class="tech-value">PostgreSQL</span>
+              </div>
+              <div class="tech-item">
+                <span class="tech-label">Almacenamiento imágenes</span>
+                <span class="tech-value">Filesystem local / Amazon S3</span>
+              </div>
+              <div class="tech-item">
+                <span class="tech-label">Despliegue</span>
+                <span class="tech-value">Docker Compose / AWS EC2</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ====================================================
+           14. GLOSARIO
+      ===================================================== -->
+      <section id="glosario" class="section">
+        <div class="section-header">
+          <h1 class="section-title">Glosario</h1>
+          <p class="section-lead">Definición de los términos técnicos utilizados en este manual y en la interfaz del sistema.</p>
+        </div>
+
+        <div class="card">
+          <dl class="glossary">
+            <div class="glossary-item">
+              <dt>Arduino UNO</dt>
+              <dd>Microcontrolador que ejecuta el firmware de la faja transportadora. Controla el motor de la cinta y los dos servos de expulsión.</dd>
+            </div>
+            <div class="glossary-item">
+              <dt>BPM (Botellas por Minuto)</dt>
+              <dd>Cadencia de la línea de producción. Indica cuántas botellas pasan por la cámara en un minuto.</dd>
+            </div>
+            <div class="glossary-item">
+              <dt>Confidence Threshold (Umbral de Confianza)</dt>
+              <dd>Porcentaje mínimo de certeza que debe tener el modelo de IA para tomar una decisión. Un threshold del 70% significa que el modelo debe estar al menos 70% seguro de su detección.</dd>
+            </div>
+            <div class="glossary-item">
+              <dt>Django / Django Channels</dt>
+              <dd>Framework web Python que forma el backend del sistema. Channels es la extensión que añade soporte para WebSockets (comunicación en tiempo real).</dd>
+            </div>
+            <div class="glossary-item">
+              <dt>Estación 1</dt>
+              <dd>Primer punto de control de la faja. Aquí se detiene la botella, la cámara la fotografía y el modelo YOLOv8 la clasifica. El Servo 1 expulsa las botellas defectuosas.</dd>
+            </div>
+            <div class="glossary-item">
+              <dt>Estación 2</dt>
+              <dd>Segundo punto de control. El Servo 2 expulsa las botellas con nivel de llenado bajo que el modelo ya había identificado en la Estación 1.</dd>
+            </div>
+            <div class="glossary-item">
+              <dt>HMI (Human Machine Interface)</dt>
+              <dd>La interfaz gráfica de SORT-MATIC accesible desde el navegador. Permite al operador controlar y monitorear la línea de producción.</dd>
+            </div>
+            <div class="glossary-item">
+              <dt>KPI (Key Performance Indicator)</dt>
+              <dd>Indicador clave de rendimiento. En SORT-MATIC: Rendimiento (%), Merma global (%), Cadencia real (BPM), Tasa de llenado bajo (%) y Defecto predominante.</dd>
+            </div>
+            <div class="glossary-item">
+              <dt>Lote</dt>
+              <dd>Agrupación de botellas inspeccionadas en una misma corrida de producción. Los lotes se identifican con un número correlativo (ej: LOT-0001).</dd>
+            </div>
+            <div class="glossary-item">
+              <dt>Merma</dt>
+              <dd>Botella descartada por la línea de inspección. Puede ser por defecto físico (D) o por nivel de llenado bajo (L).</dd>
+            </div>
+            <div class="glossary-item">
+              <dt>Pareto (Gráfico de)</dt>
+              <dd>Diagrama de barras que muestra los tipos de defecto ordenados de mayor a menor frecuencia. Ayuda a identificar el defecto más frecuente para priorizar acciones correctivas.</dd>
+            </div>
+            <div class="glossary-item">
+              <dt>React</dt>
+              <dd>Librería JavaScript usada para construir la interfaz web (frontend) de SORT-MATIC.</dd>
+            </div>
+            <div class="glossary-item">
+              <dt>ROI (Region of Interest)</dt>
+              <dd>Región de la imagen de la cámara que el sistema analiza. Se configura en <code>config.json</code> para encuadrar solo la botella en la estación.</dd>
+            </div>
+            <div class="glossary-item">
+              <dt>SCADA</dt>
+              <dd>Supervisory Control and Data Acquisition. Sistema de supervisión y control industrial en tiempo real. SORT-MATIC es la implementación SCADA web para la línea de botellas.</dd>
+            </div>
+            <div class="glossary-item">
+              <dt>Servo</dt>
+              <dd>Actuador mecánico que expulsa las botellas de la faja. El Servo 1 (pin 10) está en la Estación 1 para defectuosas; el Servo 2 (pin 11) en la Estación 2 para nivel bajo.</dd>
+            </div>
+            <div class="glossary-item">
+              <dt>WebSocket</dt>
+              <dd>Protocolo de comunicación bidireccional en tiempo real entre el navegador y el servidor. Permite que los contadores y el estado se actualicen automáticamente sin recargar la página.</dd>
+            </div>
+            <div class="glossary-item">
+              <dt>YOLOv8 (You Only Look Once v8)</dt>
+              <dd>Modelo de detección de objetos de la empresa Ultralytics. Es el cerebro de la visión artificial de SORT-MATIC, entrenado para detectar etiquetas, tapas, defectos y nivel de llenado de botellas.</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+      <p>SORT-MATIC · Manual de Usuario Digital · Versión 1.0 · EMBOL S.A.</p>
+      <p style="margin-top:0.25rem; color: var(--text-muted)">Generado el 2025 · Todos los derechos reservados</p>
+    </footer>
+  </div>
+
+  <script src="assets/app.js"></script>
+
+  <!-- LIGHTBOX para ver capturas a tamaño completo -->
+  <div id="lightbox" role="dialog" aria-label="Ver imagen completa">
+    <button id="lightbox-close" onclick="document.getElementById('lightbox').classList.remove('open')">✕ Cerrar</button>
+    <img id="lightbox-img" src="" alt="" />
+    <div id="lightbox-caption"></div>
+  </div>
+
+  <script>
+    // Activar lightbox en todas las .manual-figure img
+    document.querySelectorAll('.manual-figure img').forEach(img => {
+      img.addEventListener('click', function() {
+        const lb  = document.getElementById('lightbox');
+        const lbi = document.getElementById('lightbox-img');
+        const lbc = document.getElementById('lightbox-caption');
+        lbi.src = this.src;
+        lbi.alt = this.alt;
+        lbc.textContent = this.closest('figure')?.querySelector('figcaption')?.textContent || '';
+        lb.classList.add('open');
+      });
+    });
+    document.getElementById('lightbox').addEventListener('click', function(e) {
+      if (e.target === this) this.classList.remove('open');
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') document.getElementById('lightbox').classList.remove('open');
+    });
+  </script>
+</body>
+</html>
+
