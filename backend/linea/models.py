@@ -292,7 +292,7 @@ class FotoDescarte(models.Model):
     inspeccion = models.OneToOneField(
         Inspeccion, related_name="foto", on_delete=models.CASCADE
     )
-    imagen = models.ImageField(upload_to=ruta_foto_descarte)
+    imagen = models.ImageField(upload_to=ruta_foto_descarte, max_length=4000)
     creada_en = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
