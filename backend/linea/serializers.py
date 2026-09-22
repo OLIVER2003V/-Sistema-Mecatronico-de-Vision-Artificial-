@@ -168,6 +168,9 @@ class MermaSerializer(serializers.ModelSerializer):
         foto = getattr(obj, "foto", None)
         if foto is None or not foto.imagen:
             return None
+        nombre = getattr(foto.imagen, "name", "") or ""
+        if nombre.startswith("http://") or nombre.startswith("https://"):
+            return nombre
         url = foto.imagen.url
         pedido = self.context.get("request")
         # Con S3 la url ya viene absoluta y firmada; con disco local hay que
