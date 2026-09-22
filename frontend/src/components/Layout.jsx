@@ -17,6 +17,7 @@ import {
   Package,
   ScrollText,
   SlidersHorizontal,
+  Sparkles,
   Users,
   X,
 } from 'lucide-react'
@@ -25,6 +26,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 
 import { useSesion } from '../hooks/useSesion.jsx'
 import { ProveedorTelemetria, useTelemetria } from '../hooks/useTelemetria.jsx'
+import AsistenteReportesModal from './AsistenteReportesModal.jsx'
 import CambiarPassword from './CambiarPassword.jsx'
 import EstadoConexion from './EstadoConexion.jsx'
 
@@ -143,13 +145,11 @@ function MenuUsuario({ onCambiarPassword }) {
   )
 }
 
-function Cabecera({ onAbrirMenu, onCambiarPassword }) {
+function Cabecera({ onAbrirMenu, onCambiarPassword, onAbrirReportes }) {
   const { pathname } = useLocation()
   const { conectado, ultimaSenal } = useTelemetria()
   const actual = TODAS.find((e) => e.a === pathname)
 
-  // El titulo de la pestaña ayuda cuando hay varias abiertas (pasa en la
-  // sala de control, con el monitoreo en una pantalla y la calidad en otra).
   useEffect(() => {
     document.title = actual ? `${actual.texto} · SORT-MATIC` : 'SORT-MATIC · EMBOL'
   }, [actual])
@@ -167,6 +167,15 @@ function Cabecera({ onAbrirMenu, onCambiarPassword }) {
       <h2 className="truncate text-base font-semibold text-slate-100">{actual?.texto ?? 'SORT-MATIC'}</h2>
 
       <div className="ml-auto flex items-center gap-3">
+        <button
+          onClick={onAbrirReportes}
+          className="flex items-center gap-2 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-semibold text-cyan-300 transition-colors hover:bg-cyan-500/20 hover:border-cyan-400 shadow-sm"
+          title="Generar Reportes Dinámicos con IA (Voz / Prompt)"
+        >
+          <Sparkles className="h-4 w-4 text-cyan-400 animate-pulse" />
+          <span className="hidden sm:inline">Reportes IA</span>
+        </button>
+
         <EstadoConexion conectado={conectado} ultimaSenal={ultimaSenal} />
         <MenuUsuario onCambiarPassword={onCambiarPassword} />
       </div>
@@ -204,10 +213,10 @@ function Enlace({ entrada, onNavegar }) {
 function Contenido() {
   const [menuAbierto, setMenuAbierto] = useState(false)
   const [cambiandoPassword, setCambiandoPassword] = useState(false)
+  const [reportesAbierto, setReportesAbierto] = useState(false)
   const { permisos } = useSesion()
   const { pathname } = useLocation()
 
-  // En movil el menu es un cajon: al navegar tiene que cerrarse solo.
   useEffect(() => setMenuAbierto(false), [pathname])
 
   const secciones = SECCIONES.map((s) => ({
@@ -216,7 +225,7 @@ function Contenido() {
   })).filter((s) => s.entradas.length > 0)
 
   return (
-    <div className="min-h-screen bg-slate-900 lg:flex">
+    <div className="min-h-screen bg-slate-900 lg:flex relative">
       <a
         href="#contenido"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-cyan-600 focus:px-4 focus:py-2 focus:text-white"
@@ -272,12 +281,24 @@ function Contenido() {
         <Cabecera
           onAbrirMenu={() => setMenuAbierto(true)}
           onCambiarPassword={() => setCambiandoPassword(true)}
+          onAbrirReportes={() => setReportesAbierto(true)}
         />
         <main id="contenido" className="p-4 lg:p-6">
           <Outlet />
         </main>
       </div>
 
+      {/* Botón Flotante para Asistente & Reportes IA */}
+      <button
+        onClick={() => setReportesAbierto(true)}
+        className="fixed bottom-6 right-6 z-30 flex items-center gap-2 rounded-full bg-cyan-600 p-3.5 text-white shadow-xl transition-transform hover:scale-105 hover:bg-cyan-500 active:scale-95"
+        title="Generar Reportes con IA (Voz / Prompt)"
+      >
+        <Sparkles className="h-6 w-6 text-white" />
+        <span className="hidden font-bold text-sm pr-1 md:inline">Generar Reporte IA</span>
+      </button>
+
+      {reportesAbierto && <AsistenteReportesModal onCerrar={() => setReportesAbierto(false)} />}
       {cambiandoPassword && <CambiarPassword onCerrar={() => setCambiandoPassword(false)} />}
     </div>
   )
