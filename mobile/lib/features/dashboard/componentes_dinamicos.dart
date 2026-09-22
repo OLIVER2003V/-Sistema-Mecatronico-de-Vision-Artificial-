@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import '../../core/reporte_exporter.dart';
 
 enum TipoComponenteDinamico {
   kpiCard,
@@ -130,6 +131,17 @@ class ComponenteDinamicoWidget extends StatelessWidget {
                 ),
               ),
               IconButton(
+                icon: const Icon(Icons.file_download_outlined, color: Colors.cyanAccent, size: 20),
+                onPressed: () {
+                  final md = _convertirComponenteAMarkdown(data);
+                  ReporteExporter.mostrarOpcionesExportacion(
+                    context: context,
+                    contenidoMarkdown: md,
+                  );
+                },
+                tooltip: 'Exportar a PDF / Excel',
+              ),
+              IconButton(
                 icon: const Icon(Icons.close_rounded, color: Colors.grey, size: 20),
                 onPressed: onEliminar,
                 tooltip: 'Quitar del tapiz',
@@ -143,6 +155,73 @@ class ComponenteDinamicoWidget extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  static String _convertirComponenteAMarkdown(ComponenteDinamicoData data) {
+    final sb = StringBuffer();
+    sb.writeln('# ${data.titulo}');
+    sb.writeln('**Fecha de Generación:** ${data.creadoEn.toString().substring(0, 19)}');
+    sb.writeln('**Tipo:** ${data.tipo.name}');
+    sb.writeln('\n---');
+
+    final datos = data.datos;
+    switch (data.tipo) {
+      case TipoComponenteDinamico.reporteMarkdown:
+        final contenido = datos['contenido'] ?? datos['texto'] ?? datos['markdown'] ?? '';
+        sb.writeln(contenido);
+        break;
+
+      case TipoComponenteDinamico.kpiCard:
+      case TipoComponenteDinamico.metricaConteo:
+        final valor = datos['valor'] ?? datos['value'] ?? datos['conteo'] ?? '0';
+        final subtitulo = datos['subtitulo'] ?? datos['subtitle'] ?? '';
+        sb.writeln('- **Valor:** $valor');
+        if (subtitulo.isNotEmpty) sb.writeln('- **Detalle:** $subtitulo');
+        break;
+
+      case TipoComponenteDinamico.tablaDatos:
+        final encabezados = datos['encabezados'] as List? ?? datos['headers'] as List? ?? [];
+        final filas = datos['filas'] as List? ?? datos['rows'] as List? ?? [];
+        if (encabezados.isNotEmpty) {
+          sb.writeln('| ${encabezados.join(' | ')} |');
+          sb.writeln('| ${encabezados.map((_) => '---').join(' | ')} |');
+          for (final fila in filas) {
+            if (fila is List) {
+              sb.writeln('| ${fila.join(' | ')} |');
+            } else if (fila is Map) {
+              sb.writeln('| ${fila.values.join(' | ')} |');
+            }
+          }
+        }
+        break;
+
+      case TipoComponenteDinamico.graficoBarras:
+      case TipoComponenteDinamico.graficoPie:
+      case TipoComponenteDinamico.graficoBarrasMermas:
+      case TipoComponenteDinamico.graficoDonutYield:
+        final items = datos['datos'] as List? ?? datos['series'] as List? ?? datos['items'] as List? ?? [];
+        if (items.isNotEmpty) {
+          for (final item in items) {
+            if (item is Map) {
+              final label = item['etiqueta'] ?? item['nombre'] ?? item['x'] ?? 'Categoría';
+              final val = item['valor'] ?? item['value'] ?? item['y'] ?? '0';
+              sb.writeln('- **$label:** $val');
+            }
+          }
+        } else {
+          sb.writeln('- Gráfico dinámico de visualización de datos.');
+        }
+        break;
+
+      case TipoComponenteDinamico.alertaStatus:
+      case TipoComponenteDinamico.estadoFaja:
+        final msg = datos['mensaje'] ?? datos['estado'] ?? datos['status'] ?? 'Sin detalle';
+        final nivel = datos['nivel'] ?? datos['level'] ?? 'INFO';
+        sb.writeln('- **Nivel / Estado:** $nivel');
+        sb.writeln('- **Mensaje:** $msg');
+        break;
+    }
+    return sb.toString();
   }
 
   Widget _obtenerIconoTipo(TipoComponenteDinamico tipo) {

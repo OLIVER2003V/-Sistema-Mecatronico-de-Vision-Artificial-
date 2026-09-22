@@ -26,6 +26,10 @@ dependencies:
   fl_chart: ^0.68.0
   cupertino_icons: ^1.0.6
 
+  # Exportación de Reportes PDF y Excel
+  pdf: ^3.10.8
+  printing: ^5.11.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

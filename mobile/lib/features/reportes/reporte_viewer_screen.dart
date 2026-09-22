@@ -3,6 +3,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import '../../core/auth_service.dart';
 import '../../core/ia_service.dart';
+import '../../core/reporte_exporter.dart';
 
 class ReporteViewerScreen extends StatefulWidget {
   final UsuarioSesion? usuarioSesion;
@@ -67,6 +68,15 @@ class _ReporteViewerScreenState extends State<ReporteViewerScreen> {
     }
   }
 
+  void _mostrarMenuExportar() {
+    if (_reporteMarkdown.isEmpty) return;
+    ReporteExporter.mostrarOpcionesExportacion(
+      context: context,
+      contenidoMarkdown: _reporteMarkdown,
+      usuario: _nombreUsuario,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -75,6 +85,28 @@ class _ReporteViewerScreenState extends State<ReporteViewerScreen> {
         backgroundColor: const Color(0xFF1E293B),
         title: const Text("Reporte Ejecutivo Generativo", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.picture_as_pdf, color: Colors.redAccent),
+            tooltip: 'Exportar a PDF',
+            onPressed: _reporteMarkdown.isEmpty
+                ? null
+                : () => ReporteExporter.exportarPDF(
+                      context: context,
+                      contenidoMarkdown: _reporteMarkdown,
+                      usuario: _nombreUsuario,
+                    ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.table_chart, color: Colors.greenAccent),
+            tooltip: 'Exportar a Excel',
+            onPressed: _reporteMarkdown.isEmpty
+                ? null
+                : () => ReporteExporter.exportarExcel(
+                      context: context,
+                      contenidoMarkdown: _reporteMarkdown,
+                      usuario: _nombreUsuario,
+                    ),
+          ),
           IconButton(
             icon: Icon(_leyendoVoz ? Icons.volume_up_rounded : Icons.volume_mute_rounded, color: Colors.cyanAccent),
             tooltip: 'Lectura por Voz',
@@ -100,25 +132,69 @@ class _ReporteViewerScreenState extends State<ReporteViewerScreen> {
             )
           : SingleChildScrollView(
               padding: const EdgeInsets.all(16),
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white.withOpacity(0.1)),
-                ),
-                child: MarkdownBody(
-                  data: _reporteMarkdown,
-                  styleSheet: MarkdownStyleSheet(
-                    h1: const TextStyle(color: Colors.cyanAccent, fontSize: 20, fontWeight: FontWeight.bold),
-                    h2: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
-                    p: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
-                    strong: const TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold),
-                    listBullet: const TextStyle(color: Colors.cyanAccent),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1E293B),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.white.withOpacity(0.1)),
+                    ),
+                    child: MarkdownBody(
+                      data: _reporteMarkdown,
+                      styleSheet: MarkdownStyleSheet(
+                        h1: const TextStyle(color: Colors.cyanAccent, fontSize: 20, fontWeight: FontWeight.bold),
+                        h2: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                        p: const TextStyle(color: Colors.white70, fontSize: 14, height: 1.5),
+                        strong: const TextStyle(color: Colors.amberAccent, fontWeight: FontWeight.bold),
+                        listBullet: const TextStyle(color: Colors.cyanAccent),
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.redAccent.shade700,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          icon: const Icon(Icons.picture_as_pdf, color: Colors.white),
+                          label: const Text("Exportar PDF", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          onPressed: () => ReporteExporter.exportarPDF(
+                            context: context,
+                            contenidoMarkdown: _reporteMarkdown,
+                            usuario: _nombreUsuario,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green.shade700,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          icon: const Icon(Icons.table_chart, color: Colors.white),
+                          label: const Text("Exportar Excel", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                          onPressed: () => ReporteExporter.exportarExcel(
+                            context: context,
+                            contenidoMarkdown: _reporteMarkdown,
+                            usuario: _nombreUsuario,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                ],
               ),
             ),
     );
   }
 }
+
