@@ -6,6 +6,7 @@ import '../../core/auth_service.dart';
 import '../../core/ia_service.dart';
 import '../../core/chat_history_service.dart';
 import '../dashboard/componentes_dinamicos.dart';
+import '../reportes/reporte_viewer_screen.dart';
 
 class AsistenteBurbujaModal extends StatefulWidget {
   final UsuarioSesion? usuarioSesion;
@@ -345,7 +346,18 @@ class _AsistenteBurbujaModalState extends State<AsistenteBurbujaModal> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.delete_outline_rounded, color: Colors.amberAccent, size: 20),
+                    icon: const Icon(Icons.description_rounded, color: Colors.amberAccent, size: 20),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => ReporteViewerScreen(usuarioSesion: widget.usuarioSesion),
+                        ),
+                      );
+                    },
+                    tooltip: 'Generar / Exportar Reporte',
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent, size: 20),
                     onPressed: _limpiarHistorial,
                     tooltip: 'Borrar historial de chat',
                   ),

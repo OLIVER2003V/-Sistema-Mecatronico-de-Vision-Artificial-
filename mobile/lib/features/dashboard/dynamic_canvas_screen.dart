@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/auth_service.dart';
 import '../../core/ia_service.dart';
+import '../../core/reporte_exporter.dart';
 import '../asistente/asistente_burbuja.dart';
 import '../auth/login_screen.dart';
 import 'componentes_dinamicos.dart';
@@ -60,6 +61,90 @@ class _DynamicCanvasScreenState extends State<DynamicCanvasScreen> {
     setState(() {
       _componentesActivos.clear();
     });
+  }
+
+  void _exportarCanvasCompleto() {
+    if (_componentesActivos.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No hay reportes ni componentes generados en la página principal para exportar.')),
+      );
+      return;
+    }
+
+    final sb = StringBuffer();
+    sb.writeln('# Reporte Consolidado de la Página Principal (SORT-MATIC)');
+    sb.writeln('**Generado Por:** $_nombreUsuario ($_rolUsuario)');
+    sb.writeln('**Fecha:** ${DateTime.now().toString().substring(0, 19)}');
+    sb.writeln('**Cantidad de Reportes / Componentes Generados:** ${_componentesActivos.length}');
+    sb.writeln('\n---');
+
+    for (final comp in _componentesActivos) {
+      sb.writeln('\n## ${comp.titulo}');
+      final datos = comp.datos;
+
+      switch (comp.tipo) {
+        case TipoComponenteDinamico.reporteMarkdown:
+          final contenido = datos['contenido'] ?? datos['texto'] ?? datos['markdown'] ?? '';
+          sb.writeln(contenido);
+          break;
+
+        case TipoComponenteDinamico.kpiCard:
+        case TipoComponenteDinamico.metricaConteo:
+          final valor = datos['valor'] ?? datos['value'] ?? datos['conteo'] ?? '0';
+          final subtitulo = datos['subtitulo'] ?? datos['subtitle'] ?? '';
+          sb.writeln('- **Valor:** $valor');
+          if (subtitulo.isNotEmpty) sb.writeln('- **Detalle:** $subtitulo');
+          break;
+
+        case TipoComponenteDinamico.tablaDatos:
+          final encabezados = datos['encabezados'] as List? ?? datos['headers'] as List? ?? [];
+          final filas = datos['filas'] as List? ?? datos['rows'] as List? ?? [];
+          if (encabezados.isNotEmpty) {
+            sb.writeln('| ${encabezados.join(' | ')} |');
+            sb.writeln('| ${encabezados.map((_) => '---').join(' | ')} |');
+            for (final fila in filas) {
+              if (fila is List) {
+                sb.writeln('| ${fila.join(' | ')} |');
+              } else if (fila is Map) {
+                sb.writeln('| ${fila.values.join(' | ')} |');
+              }
+            }
+          }
+          break;
+
+        case TipoComponenteDinamico.graficoBarras:
+        case TipoComponenteDinamico.graficoPie:
+        case TipoComponenteDinamico.graficoBarrasMermas:
+        case TipoComponenteDinamico.graficoDonutYield:
+          final items = datos['datos'] as List? ?? datos['series'] as List? ?? datos['items'] as List? ?? [];
+          if (items.isNotEmpty) {
+            for (final item in items) {
+              if (item is Map) {
+                final label = item['etiqueta'] ?? item['nombre'] ?? item['x'] ?? 'Categoría';
+                final val = item['valor'] ?? item['value'] ?? item['y'] ?? '0';
+                sb.writeln('- **$label:** $val');
+              }
+            }
+          } else {
+            sb.writeln('- Gráfico visual generado.');
+          }
+          break;
+
+        case TipoComponenteDinamico.alertaStatus:
+        case TipoComponenteDinamico.estadoFaja:
+          final msg = datos['mensaje'] ?? datos['estado'] ?? datos['status'] ?? 'Sin detalle';
+          final nivel = datos['nivel'] ?? datos['level'] ?? 'INFO';
+          sb.writeln('- **Nivel / Estado:** $nivel');
+          sb.writeln('- **Mensaje:** $msg');
+          break;
+      }
+    }
+
+    ReporteExporter.mostrarOpcionesExportacion(
+      context: context,
+      contenidoMarkdown: sb.toString(),
+      usuario: _nombreUsuario,
+    );
   }
 
   void _ejecutarComandoFaja(String accion) async {
@@ -126,6 +211,11 @@ class _DynamicCanvasScreenState extends State<DynamicCanvasScreen> {
           ],
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.file_download_outlined, color: Colors.cyanAccent),
+            onPressed: _exportarCanvasCompleto,
+            tooltip: 'Exportar Reportes a PDF / Excel',
+          ),
           if (_componentesActivos.isNotEmpty)
             IconButton(
               icon: const Icon(Icons.delete_sweep_rounded, color: Colors.orangeAccent),

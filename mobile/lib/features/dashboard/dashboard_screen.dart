@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../core/auth_service.dart';
 import '../../core/ia_service.dart';
+import '../../core/reporte_exporter.dart';
 import '../asistente/asistente_burbuja.dart';
 import '../auth/login_screen.dart';
 import '../reportes/reporte_viewer_screen.dart';
@@ -115,6 +116,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  void _exportarDashboard() {
+    final sb = StringBuffer();
+    sb.writeln('# Reporte de Estado SCADA y KPIs de Planta (SORT-MATIC)');
+    sb.writeln('**Operador:** $_nombreUsuario ($_rolUsuario)');
+    sb.writeln('**Fecha:** ${DateTime.now().toString().substring(0, 19)}');
+    sb.writeln('\n## Estado de la Planta');
+    sb.writeln('- **Faja Transportadora:** ${_enMarcha ? 'EN MARCHA' : 'DETENIDA'}');
+    sb.writeln('- **Arduino / Controladores:** ${_arduinoConectado ? 'Conectado OK' : 'Sin Señal'}');
+    sb.writeln('\n## Indicadores Clave de Producción (KPIs)');
+    sb.writeln('- **Total Inspecciones:** $_totalInspecciones botellas');
+    sb.writeln('- **Aprobación (Yield Rate):** $_yieldRate%');
+    sb.writeln('- **Rechazos (Reject Rate):** $_rejectRate%');
+    sb.writeln('- **Cadencia de Producción:** $_cadenciaBpm / $_cadenciaTeorica BPM');
+    sb.writeln('\n## Desglose de Mermas por Defecto');
+    sb.writeln('- **Sin Tapa:** $_sinTapa');
+    sb.writeln('- **Sin Etiqueta:** $_sinEtiqueta');
+    sb.writeln('- **Defectuosas:** $_defectuosas');
+    sb.writeln('- **Llenado Bajo:** $_llenadoBajo');
+
+    ReporteExporter.mostrarOpcionesExportacion(
+      context: context,
+      contenidoMarkdown: sb.toString(),
+      usuario: _nombreUsuario,
+    );
+  }
+
   void _cerrarSesion() async {
     await AuthService.cerrarSesion();
     if (!mounted) return;
@@ -148,6 +175,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
             icon: const Icon(Icons.refresh_rounded, color: Colors.cyan),
             onPressed: _cargarMetricas,
             tooltip: 'Actualizar Datos',
+          ),
+          IconButton(
+            icon: const Icon(Icons.file_download_outlined, color: Colors.cyanAccent),
+            onPressed: _exportarDashboard,
+            tooltip: 'Exportar a PDF / Excel',
           ),
           IconButton(
             icon: const Icon(Icons.description_rounded, color: Colors.amberAccent),

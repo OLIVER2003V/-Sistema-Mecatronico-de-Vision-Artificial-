@@ -4,7 +4,9 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
 import '../../core/ia_service.dart';
 import '../../core/auth_service.dart';
+import '../../core/reporte_exporter.dart';
 import '../auth/login_screen.dart';
+import '../reportes/reporte_viewer_screen.dart';
 
 class MensajeChat {
   final String texto;
@@ -184,9 +186,30 @@ class _ChatAsistenteScreenState extends State<ChatAsistenteScreen> {
         elevation: 4,
         actions: [
           IconButton(
-            icon: const Icon(Icons.picture_as_pdf, color: Colors.cyanAccent),
-            tooltip: 'Generar Reporte',
-            onPressed: _pedirReporteGenerativo,
+            icon: const Icon(Icons.description_rounded, color: Colors.amberAccent),
+            tooltip: 'Generar Reporte Ejecutivo',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => ReporteViewerScreen(usuarioSesion: widget.usuarioSesion),
+                ),
+              );
+            },
+          ),
+          IconButton(
+            icon: const Icon(Icons.file_download_outlined, color: Colors.cyanAccent),
+            tooltip: 'Exportar PDF / Excel',
+            onPressed: () {
+              final ultimoReporte = _mensajes.lastWhere(
+                (m) => !m.esUsuario && (m.texto.contains('#') || m.texto.contains('Reporte') || m.texto.length > 100),
+                orElse: () => MensajeChat(texto: "Reporte de Mermas y Calidad SORT-MATIC\nEstado del sistema operativo e indicadores de producción.", esUsuario: false),
+              );
+              ReporteExporter.mostrarOpcionesExportacion(
+                context: context,
+                contenidoMarkdown: ultimoReporte.texto,
+                usuario: _nombreUsuario,
+              );
+            },
           ),
           IconButton(
             icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
@@ -227,7 +250,7 @@ class _ChatAsistenteScreenState extends State<ChatAsistenteScreen> {
             ),
           ),
 
-          // Chips de sugerencias según el rol
+          // Chips de sugerencias siempre disponibles para todos los usuarios
           Container(
             height: 42,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -247,15 +270,13 @@ class _ChatAsistenteScreenState extends State<ChatAsistenteScreen> {
                   backgroundColor: const Color(0xFF1E293B),
                   onPressed: () => _enviarMensaje("Muestra las métricas del lote actual"),
                 ),
-                if (esSupervisor) ...[
-                  const SizedBox(width: 8),
-                  ActionChip(
-                    avatar: const Icon(Icons.assessment, size: 16, color: Colors.greenAccent),
-                    label: const Text('Reporte Mermas', style: TextStyle(color: Colors.white, fontSize: 11)),
-                    backgroundColor: const Color(0xFF1E293B),
-                    onPressed: _pedirReporteGenerativo,
-                  ),
-                ],
+                const SizedBox(width: 8),
+                ActionChip(
+                  avatar: const Icon(Icons.assessment, size: 16, color: Colors.greenAccent),
+                  label: const Text('Generar Reporte IA', style: TextStyle(color: Colors.white, fontSize: 11)),
+                  backgroundColor: const Color(0xFF1E293B),
+                  onPressed: _pedirReporteGenerativo,
+                ),
               ],
             ),
           ),
@@ -268,12 +289,14 @@ class _ChatAsistenteScreenState extends State<ChatAsistenteScreen> {
               itemCount: _mensajes.length,
               itemBuilder: (context, index) {
                 final m = _mensajes[index];
+                final esReporteOTextoLargo = !m.esUsuario && (m.texto.contains('#') || m.texto.contains('Reporte') || m.texto.length > 150);
+
                 return Align(
                   alignment: m.esUsuario ? Alignment.centerRight : Alignment.centerLeft,
                   child: Container(
                     margin: const EdgeInsets.symmetric(vertical: 6),
                     padding: const EdgeInsets.all(14),
-                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.85),
+                    constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.88),
                     decoration: BoxDecoration(
                       color: m.esUsuario ? const Color(0xFF007ACC) : const Color(0xFF252A3A),
                       borderRadius: BorderRadius.only(
@@ -290,14 +313,56 @@ class _ChatAsistenteScreenState extends State<ChatAsistenteScreen> {
                         ),
                       ],
                     ),
-                    child: MarkdownBody(
-                      data: m.texto,
-                      styleSheet: MarkdownStyleSheet(
-                        p: const TextStyle(color: Colors.white, fontSize: 14),
-                        strong: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold),
-                        h1: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                        h2: const TextStyle(color: Colors.cyanAccent, fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        MarkdownBody(
+                          data: m.texto,
+                          styleSheet: MarkdownStyleSheet(
+                            p: const TextStyle(color: Colors.white, fontSize: 14),
+                            strong: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold),
+                            h1: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                            h2: const TextStyle(color: Colors.cyanAccent, fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        if (esReporteOTextoLargo) ...[
+                          const SizedBox(height: 12),
+                          const Divider(color: Colors.white24, height: 1),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              TextButton.icon(
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.redAccent,
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                ),
+                                icon: const Icon(Icons.picture_as_pdf, size: 16),
+                                label: const Text("PDF", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                onPressed: () => ReporteExporter.exportarPDF(
+                                  context: context,
+                                  contenidoMarkdown: m.texto,
+                                  usuario: _nombreUsuario,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              TextButton.icon(
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.greenAccent,
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                ),
+                                icon: const Icon(Icons.table_chart, size: 16),
+                                label: const Text("Excel", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                onPressed: () => ReporteExporter.exportarExcel(
+                                  context: context,
+                                  contenidoMarkdown: m.texto,
+                                  usuario: _nombreUsuario,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
                     ),
                   ),
                 );
