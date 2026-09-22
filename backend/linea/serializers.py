@@ -170,11 +170,21 @@ class MermaSerializer(serializers.ModelSerializer):
             return None
         nombre = getattr(foto.imagen, "name", "") or ""
         if nombre.startswith("http://") or nombre.startswith("https://"):
+            if "?" in nombre:
+                return nombre
+            try:
+                from urllib.parse import urlparse
+                parsed = urlparse(nombre)
+                if hasattr(foto.imagen, "storage") and hasattr(foto.imagen.storage, "url"):
+                    key = parsed.path.lstrip("/")
+                    if key:
+                        return foto.imagen.storage.url(key)
+            except Exception:
+                pass
             return nombre
+
         url = foto.imagen.url
         pedido = self.context.get("request")
-        # Con S3 la url ya viene absoluta y firmada; con disco local hay que
-        # completarla con el host para que el navegador la resuelva.
         return pedido.build_absolute_uri(url) if pedido is not None and url.startswith("/") else url
 
 
