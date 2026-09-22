@@ -213,11 +213,9 @@ def generar_dataset():
         from pathlib import Path
 
         if plantilla.startswith("http://") or plantilla.startswith("https://"):
-            parsed = urlparse(plantilla)
-            dominio = f"{parsed.scheme}://{parsed.netloc}"
-            filename = Path(parsed.path).name or "descarte.jpg"
-            path_foto = f"{dominio}/descartes/{dt.year:04d}/{dt.month:02d}/{dt.day:02d}/{filename}"
+            path_foto = plantilla
         else:
+            from pathlib import Path
             filename = Path(plantilla).name
             path_foto = f"descartes/{dt.year:04d}/{dt.month:02d}/{dt.day:02d}/{filename}"
 
